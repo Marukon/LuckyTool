@@ -38,6 +38,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Custom video on the OTA card C17 — the card plays the selected video first and then returns to the custom background image; the video is muted and center-cropped to fill the card
 - The custom OTA card background row previews the selected image
 - The custom OTA card video row previews the first frame of the selected video
+- Long press the custom OTA card background/video row to clear the selected file; with the video switch on but no video selected, the system video no longer takes over and the custom background image is shown instead
 
 #### Optimized
 

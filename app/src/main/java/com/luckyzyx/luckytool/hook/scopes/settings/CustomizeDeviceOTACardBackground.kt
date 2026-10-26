@@ -60,11 +60,15 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
         backgroundPath = preferences(ModulePrefs)
             .getString("customize_device_ota_card_background_path", "")
         //路径只是「上次选过什么」，是否生效由视频开关决定：关着就当没设过，否则关开关后仍会播旧视频
-        videoPath = if (preferences(ModulePrefs)
-                .getBoolean("customize_device_ota_card_video", false)
-        ) {
+        val videoEnabled = preferences(ModulePrefs)
+            .getBoolean("customize_device_ota_card_video", false)
+        //开关开着但文件已经不在了（缓存被清）也当没设过，否则官方拿着死路径 prepare 会黑屏
+        videoPath = if (videoEnabled) {
             preferences(ModulePrefs).getString("customize_device_ota_card_video_path", "")
+                ?.takeIf { it.isNotEmpty() && File(it).exists() } ?: ""
         } else ""
+        //开关开着却没有可用的自定义视频：官方会退回自己的 ColorOS 视频，这里连它一起挡掉，只留背景图
+        val hideOfficialVideo = videoEnabled && videoPath.isEmpty()
         val hideText = preferences(ModulePrefs).getBoolean("hide_ota_card_top_text", false)
         val applySharePage =
             preferences(ModulePrefs).getBoolean("apply_device_parameter_sharing_page", false)
@@ -154,6 +158,11 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                     proceed()
                     restoreTopBackground(!show)
                     null
+                }
+                if (hideOfficialVideo) {
+                    //挡掉官方视频后 onBindViewHolder 改走 showStaticTopBackground 分支，
+                    //正好落到上面 getTopDrawableBg 的收尾里，背景图照常补回去
+                    firstMethodOrNull { name = "isSupportTopVideo" }?.intercept { false }
                 }
                 if (backgroundPath.isNotEmpty() || videoPath.isNotEmpty()) {
                     //播放结束官方只把状态置 COMPLETED、不动视图，收敛时机拿到官方回调里最稳；

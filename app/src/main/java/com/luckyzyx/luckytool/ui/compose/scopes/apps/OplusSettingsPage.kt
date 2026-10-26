@@ -387,6 +387,10 @@ object OplusSettingsPage {
                                 )
                             )
                         },
+                        // 长按清除已选背景：hook 侧读到空路径就回落系统默认封面
+                        onLongClick = {
+                            state.set("customize_device_ota_card_background_path", null)
+                        },
                     )
                 }
                 switch(
@@ -444,6 +448,10 @@ object OplusSettingsPage {
                             path = videoPath,
                             summary = videoSummary,
                             onClick = { videoLauncher.launch("video/*") },
+                            // 长按清除已选视频：hook 侧读到空路径就不再接管视频
+                            onLongClick = {
+                                state.set("customize_device_ota_card_video_path", null)
+                            },
                         )
                     }
                 }
