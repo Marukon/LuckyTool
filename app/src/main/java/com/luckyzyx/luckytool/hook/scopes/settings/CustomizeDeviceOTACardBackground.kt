@@ -59,8 +59,12 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
         val osCode = getOSVersionCode
         backgroundPath = preferences(ModulePrefs)
             .getString("customize_device_ota_card_background_path", "")
-        videoPath =
+        //路径只是「上次选过什么」，是否生效由视频开关决定：关着就当没设过，否则关开关后仍会播旧视频
+        videoPath = if (preferences(ModulePrefs)
+                .getBoolean("customize_device_ota_card_video", false)
+        ) {
             preferences(ModulePrefs).getString("customize_device_ota_card_video_path", "")
+        } else ""
         val hideText = preferences(ModulePrefs).getBoolean("hide_ota_card_top_text", false)
         val applySharePage =
             preferences(ModulePrefs).getBoolean("apply_device_parameter_sharing_page", false)
