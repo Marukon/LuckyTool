@@ -15,6 +15,9 @@ object HookSystemUI : YukiBaseHooker() {
 
             //状态栏功能
             loadHooker(HookSystemUIStatusBar(dexKitBridge))
+
+            //全面屏手势相关
+            loadHooker(HookSystemUIGesture(dexKitBridge))
         }
 
         //锁屏
@@ -22,9 +25,6 @@ object HookSystemUI : YukiBaseHooker() {
 
         //对话框相关
         loadHooker(HookSystemUIDialog)
-
-        //全面屏手势相关
-        loadHooker(HookSystemUIGesture)
 
         //指纹相关
         loadHooker(HookSystemUIFingerPrint)
