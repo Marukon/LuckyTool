@@ -61,10 +61,9 @@ object HookOplusGames : YukiBaseHooker() {
             if (preferences(ModulePrefs).getBoolean("enable_game_run_in_background", false)) {
                 if (osCode >= 27) loadHooker(EnableGameRunInBackground(dexKitBridge))
             }
+            //自定义媒体播放器支持
+            loadHooker(CustomMediaPlayerSupport(dexKitBridge))
         }
-
-        //自定义媒体播放器支持
-        loadHooker(CustomMediaPlayerSupport)
 
         //启用开发者选项
         if (preferences(ModulePrefs).getBoolean("enable_developer_page", false)) {
