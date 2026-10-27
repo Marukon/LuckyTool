@@ -83,9 +83,8 @@ object WiFiDataIconRelated : YukiBaseHooker() {
         @Volatile
         private var injectedText: String? = null
 
-        // 抓到宿主槽位之前不去碰 View.setVisibility，避免在状态栏建好前白跑 id 解析
-        @Volatile
-        private var leftSlotCaptured = false
+        // 记住已经挂过布局监听的容器，状态栏重建时容器会换，换一次挂一次
+        private var watchedContainer: WeakReference<View>? = null
 
         // 双 WiFi / PassPoint / 系统技术标准图标开关的判定要走反射和设置查询，按时间窗口缓存结果
         @Volatile
@@ -149,23 +148,6 @@ object WiFiDataIconRelated : YukiBaseHooker() {
                         result
                     }
             }.onFailure { YLog.warn("wifi left bindEx hook failed: " + it.message) }
-
-            //Source View
-            // 宿主的槽位渲染最后都落在 framework 的 setter 上（setImageResource / setText / setVisibility），
-            // 所以跟着 setVisibility 补画：不绑死混淆出来的 lambda 类名，又能保证补画排在宿主收图之后
-            "android.view.View".toClass().resolve().firstMethod {
-                name = "setVisibility"; parameters(Int::class)
-            }.intercept {
-                val view = instanceOrNull<View>() ?: return@intercept proceed()
-                if (!leftSlotCaptured) return@intercept proceed()
-                val isLeftTv = isWifiLeftTextView(view)
-                if (!isLeftTv && !isWifiLeftImageView(view)) return@intercept proceed()
-                val result = proceed()
-                //宿主在展示自己的 6/7 时记下用哪个槽位，把没人用的槽位收起来时才轮到我们补画
-                if (view.visibility == View.VISIBLE) hostTextMode = isLeftTv
-                else applyLowStandardDigit()
-                result
-            }
         }
 
         private fun digitDrawableFor(view: ImageView): Drawable? {
@@ -175,18 +157,6 @@ object WiFiDataIconRelated : YukiBaseHooker() {
             val digit = digitOf(wifiStandard) ?: return null
             if (!isStandardIconEnabled(view.context)) return null
             return buildDigitDrawable(view.context, digit)
-        }
-
-        private fun isWifiLeftTextView(view: View): Boolean {
-            if (view !is TextView) return false
-            val id = resolveWifiLeftTvId(view.context)
-            return id != 0 && view.id == id
-        }
-
-        private fun isWifiLeftImageView(view: View): Boolean {
-            if (view !is ImageView) return false
-            val id = resolveWifiLeftId(view.context)
-            return id != 0 && view.id == id
         }
 
         private fun captureLeftViews(viewGroup: ViewGroup) {
@@ -199,21 +169,30 @@ object WiFiDataIconRelated : YukiBaseHooker() {
             if (leftTvId != 0) viewGroup.findViewById<TextView>(leftTvId)?.let {
                 lastWifiLeftTv = WeakReference(it)
             }
-            leftSlotCaptured = true
             ensureWifiCallback(context)
-            observeHostLeftRenderer()
-            applyLowStandardDigit()
+            if (watchedContainer?.get() !== viewGroup) {
+                watchedContainer = WeakReference(viewGroup)
+                // 只在状态栏真正重新布局时才看一眼槽位，不挂 framework 的 setter
+                viewGroup.viewTreeObserver.addOnGlobalLayoutListener { onLeftSlotLaidOut() }
+            }
+            onLeftSlotLaidOut()
         }
 
-        //宿主主题决定用哪个槽位：默认主题走 wifi_left_tv 文本，只有缺 O17 信号图的三方主题才走 wifi_left 图标
-        private fun observeHostLeftRenderer() {
+        //宿主主题决定用哪个槽位：默认主题走 wifi_left_tv 文本，只有缺 O17 信号图的三方主题才走 wifi_left 图标。
+        //两个槽位同时被收起，就是「这个标准宿主不管」，这时才轮到我们补画
+        private fun onLeftSlotLaidOut() {
             val textView = lastWifiLeftTv?.get()
             val imageView = lastWifiLeftView?.get()
-            hostTextMode = when {
-                textView?.isVisible == true -> true
-                imageView?.isVisible == true -> false
-                else -> hostTextMode
+            if (textView == null && imageView == null) return
+            if (textView?.isVisible == true) {
+                hostTextMode = true
+                return
             }
+            if (imageView?.isVisible == true) {
+                hostTextMode = false
+                return
+            }
+            applyLowStandardDigit()
         }
 
         //11N/11AC 宿主不会给任何槽位赋值，按宿主当前用的槽位把标准号补上
