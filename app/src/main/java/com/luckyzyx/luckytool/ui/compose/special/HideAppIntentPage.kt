@@ -68,6 +68,7 @@ import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItemContain
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialListItem
 import com.luckyzyx.luckytool.ui.compose.components.material.materialBottomInset
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixCheckboxItem
+import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixDialogScrollBody
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixListItem
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefDefaults
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefItem
@@ -895,7 +896,29 @@ internal fun IntentInfoSelectDialog(
             title = stringResource(R.string.custom_config_app_intent_list),
             onDismissRequest = onDismiss,
         ) {
-            Column {
+            // 正文（含惰性列表）拿有界剩余高度，按钮行固定在正文之外，键盘弹出时不会被压成 0 高度
+            MiuixDialogScrollBody(
+                scrollable = false,
+                actions = {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                    ) {
+                        MiuixTextButton(
+                            text = stringResource(android.R.string.cancel),
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        MiuixTextButton(
+                            text = stringResource(android.R.string.ok),
+                            onClick = { onConfirm(ArrayList(selected)) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                },
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     MiuixTextButton(
                         text = stringResource(android.R.string.selectAll),
@@ -928,6 +951,7 @@ internal fun IntentInfoSelectDialog(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .weight(1f, fill = false)
                         .heightIn(max = 380.dp),
                     verticalArrangement = Arrangement.spacedBy(MiuixPrefDefaults.ItemGap),
                     overscrollEffect = null,
@@ -947,23 +971,6 @@ internal fun IntentInfoSelectDialog(
                             summary = info.activity,
                         )
                     }
-                }
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                ) {
-                    MiuixTextButton(
-                        text = stringResource(android.R.string.cancel),
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    MiuixTextButton(
-                        text = stringResource(android.R.string.ok),
-                        onClick = { onConfirm(ArrayList(selected)) },
-                        modifier = Modifier.weight(1f),
-                    )
                 }
             }
         }

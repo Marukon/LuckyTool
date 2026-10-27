@@ -66,6 +66,7 @@ import top.yukonga.miuix.kmp.basic.HorizontalDivider as MiuixHorizontalDivider
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
+import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixDialogScrollBody
 
 /** AppInfo 排序模式（与旧 AppInfoSelectDialog 的 sortMode 对齐） */
 enum class AppSortMode(@StringRes val labelRes: Int) {
@@ -326,10 +327,10 @@ private fun MiuixAppPickerDialog(
         title = title,
         onDismissRequest = onDismiss,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 520.dp),
+        MiuixDialogScrollBody(
+            modifier = Modifier.heightIn(max = 520.dp),
+            // 列表本身可滚动（LazyColumn 不接受无界高度），正文只做有界收缩
+            scrollable = false,
         ) {
             MiuixTextField(
                 value = state.query,

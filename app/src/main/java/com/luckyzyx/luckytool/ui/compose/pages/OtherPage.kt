@@ -45,6 +45,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,6 +61,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import com.highcapable.kavaref.extension.classOf
 import com.luckyzyx.luckytool.IAdbDebugController
 import com.luckyzyx.luckytool.ITileServiceController
 import com.luckyzyx.luckytool.R
@@ -68,11 +70,12 @@ import com.luckyzyx.luckytool.service.TilesService
 import com.luckyzyx.luckytool.ui.activity.MainActivity
 import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
+import com.luckyzyx.luckytool.ui.compose.components.MainPageActivationEffect
+import com.luckyzyx.luckytool.ui.compose.components.OtherTopBarActions
 import com.luckyzyx.luckytool.ui.compose.components.PrefIcon
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
-import com.luckyzyx.luckytool.ui.compose.components.OtherTopBarActions
-import com.luckyzyx.luckytool.ui.compose.components.MainPageActivationEffect
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
+import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixDialogScrollBody
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.A13
@@ -228,10 +231,15 @@ fun OtherPage(activity: MainActivity, isCurrentPage: Boolean = true) {
                 }
                 if (hasAdbNow) {
                     group()
+                    // ADB 服务是异步连上的，这一组会在页面已显示后才出现：稳定 itemKey + animate
+                    // 让它淡入/淡出，而不是在列表末尾直接弹出来（默认槽位 key 会随上方条件行漂移，
+                    // animateItem 认不出是同一行）。
                     click(
                         title = remoteAdbTitle,
                         summary = remoteAdbSummary,
                         leading = { PrefIcon(Icons.Rounded.Adb) },
+                        itemKey = "other_adb",
+                        animate = true,
                         onClick = { showAdbDialog = true },
                     )
                 }
@@ -275,7 +283,7 @@ fun OtherPage(activity: MainActivity, isCurrentPage: Boolean = true) {
         ShortcutDialog(context) { showShortcutDialog = false }
     }
     if (showTouchDialog && tileController?.checkTouchMode() == true) {
-        TouchSamplingRateDialog(context, settings, tileController) { showTouchDialog = false }
+        TouchSamplingRateDialog(settings, tileController) { showTouchDialog = false }
     }
     if (showAdbDialog && adbController != null) {
         AdbDebugDialog(context, otherPrefs, adbController, scope) { showAdbDialog = false }
@@ -296,7 +304,7 @@ private fun TileListDialog(context: Context, onDismiss: () -> Unit) {
             it.permission == "android.permission.BIND_QUICK_SETTINGS_TILE"
         }?.toList() ?: emptyList()
     }
-    val statusBarManager = remember { context.getSystemService(StatusBarManager::class.java) }
+    val statusBarManager = remember { context.getSystemService(classOf<StatusBarManager>()) }
     // 添加结果回调内没有 Composer，字符串先在这里取一次
     val addFailText = stringResource(R.string.add_fail)
     val addRepeatText = stringResource(R.string.add_repeat)
@@ -515,14 +523,13 @@ private fun ShortcutDialog(context: Context, onDismiss: () -> Unit) {
 /** 触摸采样率档位（旧 initTouchPanelView） */
 @Composable
 private fun TouchSamplingRateDialog(
-    context: Context,
     settings: PrefState,
     controller: ITileServiceController?,
     onDismiss: () -> Unit,
 ) {
     val touchs = remember { arrayOf("120", "180", "240", "360", "480", "600", "720") }
     var tempSelection by remember {
-        mutableStateOf(touchs.indexOf(settings.getString(keyTouchSamplingRateLevel, "240")))
+        mutableIntStateOf(touchs.indexOf(settings.getString(keyTouchSamplingRateLevel, "240")))
     }
     when (LocalUiMode.current) {
         UiMode.Miuix -> OverlayDialog(
@@ -640,86 +647,88 @@ private fun AdbDebugDialog(
             show = true,
             onDismissRequest = onDismiss,
         ) {
-            SwitchPreference(
-                checked = adbEnabled,
-                onCheckedChange = { checked ->
-                    if (checked) {
-                        val portStr = portText
-                        if (portStr.isBlank()) {
-                            adbTvText = portCannotNullText
+            MiuixDialogScrollBody {
+                SwitchPreference(
+                    checked = adbEnabled,
+                    onCheckedChange = { checked ->
+                        if (checked) {
+                            val portStr = portText
+                            if (portStr.isBlank()) {
+                                adbTvText = portCannotNullText
+                            } else {
+                                scope.launch {
+                                    val port = portStr.toIntOrNull()
+                                    if (port == null) {
+                                        adbTvText =
+                                            portCannotNullText
+                                        return@launch
+                                    }
+                                    busy = true
+                                    runCatching {
+                                        withContext(Dispatchers.IO) {
+                                            adb.adbPort = port
+                                            adb.restartAdb()
+                                        }
+                                        getIP = adb.wifiIP ?: "IP"
+                                        otherPrefs.set("adb_port", port.toString())
+                                    }
+                                    adbEnabled = true
+                                    adbTvText = "adb connect $getIP:$portStr"
+                                    busy = false
+                                }
+                            }
                         } else {
                             scope.launch {
-                                val port = portStr.toIntOrNull()
-                                if (port == null) {
-                                    adbTvText =
-                                        portCannotNullText
-                                    return@launch
-                                }
                                 busy = true
                                 runCatching {
                                     withContext(Dispatchers.IO) {
-                                        adb.adbPort = port
+                                        adb.adbPort = -1
                                         adb.restartAdb()
+                                        adb.adbPort = 0
                                     }
-                                    getIP = adb.wifiIP ?: "IP"
-                                    otherPrefs.set("adb_port", port.toString())
                                 }
-                                adbEnabled = true
-                                adbTvText = "adb connect $getIP:$portStr"
+                                adbEnabled = false
+                                adbTvText = ""
                                 busy = false
                             }
                         }
-                    } else {
-                        scope.launch {
-                            busy = true
-                            runCatching {
-                                withContext(Dispatchers.IO) {
-                                    adb.adbPort = -1
-                                    adb.restartAdb()
-                                    adb.adbPort = 0
-                                }
-                            }
-                            adbEnabled = false
-                            adbTvText = ""
-                            busy = false
-                        }
-                    }
-                },
-                title = stringResource(R.string.enable_remote_adb_debugging),
-                enabled = !busy,
-            )
-            MiuixTextField(
-                value = portText,
-                onValueChange = { portText = it },
-                enabled = !adbEnabled && !busy,
-                label = stringResource(R.string.adb_port),
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
-            if (adbTvText.isNotBlank()) {
-                MiuixText(
-                    text = adbTvText,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .combinedClickable(
-                            onLongClick = { context.copyStr(adbTvText) },
-                            onClick = {},
-                        )
-                        .padding(vertical = 12.dp),
+                    },
+                    title = stringResource(R.string.enable_remote_adb_debugging),
+                    enabled = !busy,
                 )
-                MiuixText(
-                    text = stringResource(R.string.adb_tv_tip),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .combinedClickable(
-                            onLongClick = { context.copyStr(adbTvText) },
-                            onClick = {},
-                        )
-                        .padding(bottom = 20.dp),
+                MiuixTextField(
+                    value = portText,
+                    onValueChange = { portText = it },
+                    enabled = !adbEnabled && !busy,
+                    label = stringResource(R.string.adb_port),
+                    useLabelAsPlaceholder = true,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
+                if (adbTvText.isNotBlank()) {
+                    MiuixText(
+                        text = adbTvText,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onLongClick = { context.copyStr(adbTvText) },
+                                onClick = {},
+                            )
+                            .padding(vertical = 12.dp),
+                    )
+                    MiuixText(
+                        text = stringResource(R.string.adb_tv_tip),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onLongClick = { context.copyStr(adbTvText) },
+                                onClick = {},
+                            )
+                            .padding(bottom = 20.dp),
+                    )
+                }
             }
         }
 

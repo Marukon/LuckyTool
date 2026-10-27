@@ -52,6 +52,7 @@ import com.luckyzyx.luckytool.ui.compose.components.PrefCard
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItem
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialListItem
 import com.luckyzyx.luckytool.ui.compose.components.material.materialBottomInset
+import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixDialogScrollBody
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixListItem
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefDefaults
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefItem
@@ -773,52 +774,57 @@ internal fun MemcPackageDialog(
             show = true,
             onDismissRequest = onDismiss,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                PickerField(onClick = { showAppPicker = true }) {
+            MiuixDialogScrollBody(
+                actions = {
+                    DialogButtons(
+                        dismissText = if (initial != null) stringResource(R.string.remove)
+                        else stringResource(android.R.string.cancel),
+                        confirmText = stringResource(android.R.string.ok),
+                        onDismiss = { if (initial != null) showDeleteConfirm = true else onDismiss() },
+                        onConfirm = {
+                            if (packName.isBlank() || rate.isBlank() || type.isBlank()) {
+                                context.showToast("Data is incomplete!")
+                            } else {
+                                onSave(MemcConfigPackage(packName, rate, type))
+                            }
+                        },
+                    )
+                },
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PickerField(onClick = { showAppPicker = true }) {
+                        MiuixTextField(
+                            value = packName,
+                            onValueChange = {},
+                            readOnly = true,
+                            singleLine = true,
+                            label = "PackageName",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     MiuixTextField(
-                        value = packName,
-                        onValueChange = {},
-                        readOnly = true,
+                        value = rate,
+                        onValueChange = { rate = it },
                         singleLine = true,
-                        label = "PackageName",
+                        label = "ScreenRate",
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    MiuixTextField(
+                        value = type,
+                        onValueChange = { type = it },
+                        singleLine = true,
+                        label = "Type",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    MiuixText(
+                        stringResource(
+                            R.string.edit_memc_configuration_tips,
+                            CommandUtils.memcHdrConfigHelp,
+                        ),
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.onBackgroundVariant,
+                    )
                 }
-                MiuixTextField(
-                    value = rate,
-                    onValueChange = { rate = it },
-                    singleLine = true,
-                    label = "ScreenRate",
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                MiuixTextField(
-                    value = type,
-                    onValueChange = { type = it },
-                    singleLine = true,
-                    label = "Type",
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                MiuixText(
-                    stringResource(
-                        R.string.edit_memc_configuration_tips,
-                        CommandUtils.memcHdrConfigHelp,
-                    ),
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.onBackgroundVariant,
-                )
-                DialogButtons(
-                    dismissText = if (initial != null) stringResource(R.string.remove)
-                    else stringResource(android.R.string.cancel),
-                    confirmText = stringResource(android.R.string.ok),
-                    onDismiss = { if (initial != null) showDeleteConfirm = true else onDismiss() },
-                    onConfirm = {
-                        if (packName.isBlank() || rate.isBlank() || type.isBlank()) {
-                            context.showToast("Data is incomplete!")
-                        } else {
-                            onSave(MemcConfigPackage(packName, rate, type))
-                        }
-                    },
-                )
             }
         }
     } else {
@@ -985,7 +991,16 @@ private fun MemcActivityPickerDialog(
             title = "ActivityName",
             onDismissRequest = onDismiss,
         ) {
-            Column {
+            MiuixDialogScrollBody(
+                scrollable = false,
+                actions = {
+                    MiuixTextButton(
+                        text = stringResource(android.R.string.cancel),
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                },
+            ) {
                 MiuixTextField(
                     value = query,
                     onValueChange = { query = it },
@@ -1002,7 +1017,12 @@ private fun MemcActivityPickerDialog(
                         .fillMaxWidth()
                         .padding(top = 8.dp),
                 )
-                LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                LazyColumn(
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .heightIn(max = 320.dp),
+                ) {
                     items(filtered, key = { it.name }) { option ->
                         MiuixListItem(
                             title = option.label,
@@ -1011,11 +1031,6 @@ private fun MemcActivityPickerDialog(
                         )
                     }
                 }
-                MiuixTextButton(
-                    text = stringResource(android.R.string.cancel),
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                )
             }
         }
     } else {
@@ -1121,55 +1136,60 @@ internal fun MemcActivityDialog(
             show = true,
             onDismissRequest = onDismiss,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                PickerField(onClick = { showAppPicker = true }) {
+            MiuixDialogScrollBody(
+                actions = {
+                    DialogButtons(
+                        dismissText = if (initial != null) stringResource(R.string.remove)
+                        else stringResource(android.R.string.cancel),
+                        confirmText = stringResource(android.R.string.ok),
+                        onDismiss = { if (initial != null) showDeleteConfirm = true else onDismiss() },
+                        onConfirm = {
+                            if (packName.isBlank() || activity.isBlank() || type.isBlank()) {
+                                context.showToast("Data is incomplete!")
+                            } else {
+                                onSave(MemcConfigActivity(packName, activity, type))
+                            }
+                        },
+                    )
+                },
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PickerField(onClick = { showAppPicker = true }) {
+                        MiuixTextField(
+                            value = packName,
+                            onValueChange = {},
+                            readOnly = true,
+                            singleLine = true,
+                            label = "PackageName",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    PickerField(onClick = openActivityPicker) {
+                        MiuixTextField(
+                            value = activity,
+                            onValueChange = {},
+                            readOnly = true,
+                            singleLine = true,
+                            label = "ActivityName",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     MiuixTextField(
-                        value = packName,
-                        onValueChange = {},
-                        readOnly = true,
+                        value = type,
+                        onValueChange = { type = it },
                         singleLine = true,
-                        label = "PackageName",
+                        label = "Type",
                         modifier = Modifier.fillMaxWidth(),
                     )
-                }
-                PickerField(onClick = openActivityPicker) {
-                    MiuixTextField(
-                        value = activity,
-                        onValueChange = {},
-                        readOnly = true,
-                        singleLine = true,
-                        label = "ActivityName",
-                        modifier = Modifier.fillMaxWidth(),
+                    MiuixText(
+                        stringResource(
+                            R.string.edit_memc_configuration_tips,
+                            CommandUtils.memcConfigHelp,
+                        ),
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.onBackgroundVariant,
                     )
                 }
-                MiuixTextField(
-                    value = type,
-                    onValueChange = { type = it },
-                    singleLine = true,
-                    label = "Type",
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                MiuixText(
-                    stringResource(
-                        R.string.edit_memc_configuration_tips,
-                        CommandUtils.memcConfigHelp,
-                    ),
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.onBackgroundVariant,
-                )
-                DialogButtons(
-                    dismissText = if (initial != null) stringResource(R.string.remove)
-                    else stringResource(android.R.string.cancel),
-                    confirmText = stringResource(android.R.string.ok),
-                    onDismiss = { if (initial != null) showDeleteConfirm = true else onDismiss() },
-                    onConfirm = {
-                        if (packName.isBlank() || activity.isBlank() || type.isBlank()) {
-                            context.showToast("Data is incomplete!")
-                        } else {
-                            onSave(MemcConfigActivity(packName, activity, type))
-                        }
-                    },
-                )
             }
         }
     } else {
