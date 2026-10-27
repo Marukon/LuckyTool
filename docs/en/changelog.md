@@ -97,6 +97,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 - Fix the clock disappearing behind the fluid cloud when the double-row layout or a custom format containing a line break is used — measure by the widest line and report that width to the fluid cloud; a “Clock minimum width” value is now honored as-is and re-applied whenever the fluid cloud capsule appears
 - Fixed several customize options in the “About phone” group only appearing after the processor click page was set to a custom page
 - Fixed the custom OTA card background being overwritten whenever the card refreshed, an easter egg video was shown or a video ended
+- Fixed “Force show Wi-Fi standard” crash-looping System UI — the host state flow is no longer replaced; the digit is drawn with a font, and on Android 17’s default theme, where the host only paints AX/BE, 11N/11AC (4/5) are written into the text slot by the module
 
 #### Changed
 

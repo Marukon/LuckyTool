@@ -13,7 +13,9 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.core.view.isVisible
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
@@ -24,7 +26,6 @@ import com.highcapable.yukihookapi.extension.kavaref.intercept
 import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.log.YLog
-import com.luckyzyx.luckytool.hook.utils.FlowUtils
 import com.luckyzyx.luckytool.hook.utils.sysui.AbsSettingsValueProxyUtils
 import com.luckyzyx.luckytool.hook.utils.sysui.WifiStandardIconDrawable
 import com.luckyzyx.luckytool.hook.utils.sysui.WifiUtils
@@ -46,6 +47,7 @@ object WiFiDataIconRelated : YukiBaseHooker() {
     object WiFiDataIcon : YukiBaseHooker() {
 
         private const val WIFI_LEFT_ID_NAME = "wifi_left"
+        private const val WIFI_LEFT_TV_ID_NAME = "wifi_left_tv"
         private const val TECHNICAL_ICON_SWITCH = "wifi_use_technical_standard_icons_switch_on"
         private const val ICON_WIDTH_DP = 22f
         private const val ICON_HEIGHT_DP = 17f
@@ -55,6 +57,9 @@ object WiFiDataIconRelated : YukiBaseHooker() {
         private var wifiStandard = ScanResult.WIFI_STANDARD_UNKNOWN
 
         @Volatile
+        private var wifiConnected = false
+
+        @Volatile
         private var callbackRegistered = false
 
         @Volatile
@@ -62,6 +67,20 @@ object WiFiDataIconRelated : YukiBaseHooker() {
 
         @Volatile
         private var wifiLeftIdResolved = false
+
+        @Volatile
+        private var wifiLeftTvId = 0
+
+        @Volatile
+        private var wifiLeftTvIdResolved = false
+
+        // null 表示还没观察到宿主用哪个槽位渲染，默认按 C17 主题的文本槽处理
+        @Volatile
+        private var hostTextMode: Boolean? = null
+
+        // 自己写进 wifi_left_tv 的文本，断开连接时要原样收掉（宿主此时不会再发一次）
+        @Volatile
+        private var injectedText: String? = null
 
         // 双 WiFi / PassPoint / 系统技术标准图标开关的判定要走反射和设置查询，按时间窗口缓存结果
         @Volatile
@@ -73,36 +92,13 @@ object WiFiDataIconRelated : YukiBaseHooker() {
         // 标准号是异步拿到的，拿到后补画一次，避免宿主只贴一次图时错过
         private var lastWifiLeftView: WeakReference<ImageView>? = null
 
+        private var lastWifiLeftTv: WeakReference<TextView>? = null
+
         private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
         override fun onHook() {
-            val removeInout = preferences(ModulePrefs).getBoolean("remove_wifi_data_inout", false)
             val forceStandard =
                 preferences(ModulePrefs).getBoolean("force_display_wifi_standard", false)
-
-            //Source OplusWifiViewModel
-            if (false) "com.oplus.systemui.statusbar.pipeline.wifi.ui.viewmodel.OplusWifiViewModel".toClass()
-                .resolve().apply {
-                    firstMethod {
-                        name = "getWifiActivityResId"
-                        returnType = "kotlinx.coroutines.flow.StateFlow"
-                    }.hook {
-                        after {
-                            if (!removeInout) return@after
-                            if (result == null) return@after
-
-                            val originalValue =
-                                FlowUtils(hostClassLoader!!).getValue<Int>(result!!) ?: -1
-                            if (originalValue <= 0) return@after
-
-                            result = FlowUtils(hostClassLoader!!).let {
-                                val mutableStateFlow = it.MutableStateFlow(-1)
-                                    ?: return@after
-                                it.asStateFlow(mutableStateFlow) ?: return@after
-                            }
-                        }
-                    }
-                }
 
             if (!forceStandard) return
 
@@ -112,11 +108,11 @@ object WiFiDataIconRelated : YukiBaseHooker() {
             // 现在只在宿主贴图时换图：命中宿主 wifi_left 就把图标换成本地绘制的数字，不碰任何流类型
             val imageViewClass = "android.widget.ImageView".toClass().resolve()
 
-            //宿主直接贴资源 id（C17 的 OplusWifiSignalExImpl 给的就是资源 id）
+            //宿主直接贴资源 id（缺 O17 信号图的三方主题才会用到 wifi_left 图标）
             imageViewClass.firstMethod {
                 name = "setImageResource"; parameters(Int::class)
             }.intercept {
-                val view = instance as? ImageView ?: return@intercept proceed()
+                val view = instanceOrNull<ImageView>() ?: return@intercept proceed()
                 val drawable = digitDrawableFor(view) ?: return@intercept proceed()
                 //跳过宿主原图直接贴自绘数字，贴图会再进 setImageDrawable，那里按类型短路
                 view.setImageDrawable(drawable)
@@ -127,7 +123,7 @@ object WiFiDataIconRelated : YukiBaseHooker() {
             imageViewClass.firstMethod {
                 name = "setImageDrawable"; parameters(Drawable::class)
             }.intercept {
-                val view = instance as? ImageView ?: return@intercept proceed()
+                val view = instanceOrNull<ImageView>() ?: return@intercept proceed()
                 val incoming = arg<Drawable>(0)
                 if (incoming is WifiStandardIconDrawable) return@intercept proceed()
                 //宿主清空图标（未连接等）时保持原样
@@ -135,6 +131,29 @@ object WiFiDataIconRelated : YukiBaseHooker() {
                 val drawable = digitDrawableFor(view) ?: return@intercept proceed()
                 proceed(arrayOf<Any?>(drawable))
             }
+
+            //Source OplusWifiSignalExImpl
+            // 宿主只给 11AX(6)/11BE(8) 赋值：技术标准图标开时 wifiLeftResId 给 stat_signal_wifi_6/7，
+            // 或 O17 主题下 wifiLeftText 给 "6"/"7"。11N(4)/11AC(5) 两条路径都返回空，两个槽位直接隐藏，
+            // 所以这两个标准要在宿主绑定和每次刷新之后自己补上
+            "com.oplus.systemui.statusbar.pipeline.OplusWifiSignalExImpl".toClass().resolve()
+                .firstMethod { name = "bindEx" }.intercept {
+                    val result = proceed()
+                    arg<ViewGroup>(0)?.let { captureLeftViews(it) }
+                    result
+                }
+
+            //bindEx$2$1$2$1 是宿主 combine(wifiLeftResId, wifiLeftText) 的转换 lambda，
+            //(resId, text) 每次变化都会跑一遍并把两个槽位重新摆一次，这里跟着补画
+            runCatching {
+                "com.oplus.systemui.statusbar.pipeline.OplusWifiSignalExImpl\$bindEx\$2\$1\$2\$1".toClass()
+                    .resolve().firstMethod { name = "invokeSuspend" }.intercept {
+                        val result = proceed()
+                        observeHostLeftRenderer()
+                        applyLowStandardDigit()
+                        result
+                    }
+            }.onFailure { YLog.warn("wifi left lambda hook failed: " + it.message) }
         }
 
         private fun digitDrawableFor(view: ImageView): Drawable? {
@@ -146,12 +165,93 @@ object WiFiDataIconRelated : YukiBaseHooker() {
             return buildDigitDrawable(view.context, digit)
         }
 
+        private fun captureLeftViews(viewGroup: ViewGroup) {
+            val context = viewGroup.context ?: return
+            val leftId = resolveWifiLeftId(context)
+            if (leftId != 0) viewGroup.findViewById<ImageView>(leftId)?.let {
+                lastWifiLeftView = WeakReference(it)
+            }
+            val leftTvId = resolveWifiLeftTvId(context)
+            if (leftTvId != 0) viewGroup.findViewById<TextView>(leftTvId)?.let {
+                lastWifiLeftTv = WeakReference(it)
+            }
+            ensureWifiCallback(context)
+            observeHostLeftRenderer()
+            applyLowStandardDigit()
+        }
+
+        //宿主主题决定用哪个槽位：默认主题走 wifi_left_tv 文本，只有缺 O17 信号图的三方主题才走 wifi_left 图标
+        private fun observeHostLeftRenderer() {
+            val textView = lastWifiLeftTv?.get()
+            val imageView = lastWifiLeftView?.get()
+            hostTextMode = when {
+                textView?.isVisible == true -> true
+                imageView?.isVisible == true -> false
+                else -> hostTextMode
+            }
+        }
+
+        //11N/11AC 宿主不会给任何槽位赋值，按宿主当前用的槽位把标准号补上
+        private fun applyLowStandardDigit() {
+            if (Looper.myLooper() != Looper.getMainLooper()) {
+                mainHandler.post { applyLowStandardDigit() }
+                return
+            }
+            val digit = lowStandardDigitOf(wifiStandard) ?: return
+            if (!wifiConnected) return
+            if (hostTextMode != false) {
+                val textView = lastWifiLeftTv?.get() ?: return
+                if (!isStandardIconEnabled(textView.context)) return
+                val text = digit.toString()
+                injectedText = text
+                textView.text = text
+                if (textView.visibility != View.VISIBLE) textView.setVisibility(View.VISIBLE)
+            } else {
+                val imageView = lastWifiLeftView?.get() ?: return
+                if (!isStandardIconEnabled(imageView.context)) return
+                imageView.setImageDrawable(buildDigitDrawable(imageView.context, digit))
+                if (imageView.visibility != View.VISIBLE) imageView.setVisibility(View.VISIBLE)
+            }
+        }
+
+        //断开后宿主不会再发一次（resId 和 text 都没变化），自己塞进去的数字要自己收掉
+        private fun clearLowDigit() {
+            if (Looper.myLooper() != Looper.getMainLooper()) {
+                mainHandler.post { clearLowDigit() }
+                return
+            }
+            val injected = injectedText
+            if (injected != null) {
+                injectedText = null
+                val textView = lastWifiLeftTv?.get()
+                if (textView != null && textView.text?.toString() == injected) {
+                    textView.text = ""
+                    textView.setVisibility(View.GONE)
+                }
+            }
+            val imageView = lastWifiLeftView?.get() ?: return
+            if (lowStandardDigitOf(wifiStandard) == null && imageView.drawable is WifiStandardIconDrawable) {
+                imageView.setVisibility(View.GONE)
+            }
+        }
+
+        @SuppressLint("DiscouragedApi")
         private fun resolveWifiLeftId(context: Context): Int {
             if (wifiLeftIdResolved) return wifiLeftId
             wifiLeftIdResolved = true
             wifiLeftId = context.resources.getIdentifier(WIFI_LEFT_ID_NAME, "id", packageName)
-            if (wifiLeftId == 0) YLog.warn("wifi_left not found in " + packageName + " resources")
+            if (wifiLeftId == 0) YLog.warn("wifi_left not found in $packageName resources")
             return wifiLeftId
+        }
+
+        @SuppressLint("DiscouragedApi")
+        private fun resolveWifiLeftTvId(context: Context): Int {
+            if (wifiLeftTvIdResolved) return wifiLeftTvId
+            wifiLeftTvIdResolved = true
+            wifiLeftTvId =
+                context.resources.getIdentifier(WIFI_LEFT_TV_ID_NAME, "id", packageName)
+            if (wifiLeftTvId == 0) YLog.warn("wifi_left_tv not found in $packageName resources")
+            return wifiLeftTvId
         }
 
         private fun digitOf(standard: Int): Char? = when (standard) {
@@ -159,6 +259,13 @@ object WiFiDataIconRelated : YukiBaseHooker() {
             ScanResult.WIFI_STANDARD_11AC -> '5'
             ScanResult.WIFI_STANDARD_11AX -> '6'
             ScanResult.WIFI_STANDARD_11BE -> '7'
+            else -> null
+        }
+
+        //宿主自己会给 11AX/11BE 出数字（还会出 "6E"），这里只补宿主不管的 11N/11AC
+        private fun lowStandardDigitOf(standard: Int): Char? = when (standard) {
+            ScanResult.WIFI_STANDARD_11N -> '4'
+            ScanResult.WIFI_STANDARD_11AC -> '5'
             else -> null
         }
 
@@ -197,32 +304,35 @@ object WiFiDataIconRelated : YukiBaseHooker() {
                     addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                     addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 }.build()
-                manager.registerNetworkCallback(request, object : ConnectivityManager.NetworkCallback() {
-                    override fun onCapabilitiesChanged(
-                        network: Network, networkCapabilities: NetworkCapabilities
-                    ) {
-                        val info = networkCapabilities.transportInfo as? WifiInfo ?: return
-                        val isPrimary = info.asResolver().firstMethod {
-                            name = "isPrimary"; emptyParameters()
-                        }.invoke<Boolean>() ?: false
-                        if (!isPrimary) return
-                        val standard = info.wifiStandard
-                        if (wifiStandard == standard) return
-                        wifiStandard = standard
-                        repaintWifiLeftIcon(standard)
-                    }
-                }, mainHandler)
+                manager.registerNetworkCallback(
+                    request,
+                    object : ConnectivityManager.NetworkCallback() {
+                        override fun onCapabilitiesChanged(
+                            network: Network, networkCapabilities: NetworkCapabilities
+                        ) {
+                            val info = networkCapabilities.transportInfo as? WifiInfo ?: return
+                            val isPrimary = info.asResolver().firstMethod {
+                                name = "isPrimary"; emptyParameters()
+                            }.invoke<Boolean>() ?: false
+                            if (!isPrimary) return
+                            wifiConnected = true
+                            onWifiStandardChanged(info.wifiStandard)
+                        }
+
+                        override fun onLost(network: Network) {
+                            wifiConnected = false
+                            wifiStandard = ScanResult.WIFI_STANDARD_UNKNOWN
+                            clearLowDigit()
+                        }
+                    },
+                    mainHandler
+                )
             }.onFailure { YLog.error("register wifi network callback failed", it) }
         }
 
-        private fun repaintWifiLeftIcon(standard: Int) {
-            val digit = digitOf(standard) ?: return
-            val view = lastWifiLeftView?.get() ?: return
-            mainHandler.post {
-                if (view.drawable == null) return@post
-                if (!isStandardIconEnabled(view.context)) return@post
-                view.setImageDrawable(buildDigitDrawable(view.context, digit))
-            }
+        private fun onWifiStandardChanged(standard: Int) {
+            if (wifiStandard != standard) wifiStandard = standard
+            applyLowStandardDigit()
         }
     }
 
