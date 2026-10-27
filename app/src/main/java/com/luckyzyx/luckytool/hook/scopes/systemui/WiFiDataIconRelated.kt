@@ -106,36 +106,6 @@ object WiFiDataIconRelated : YukiBaseHooker() {
 
             if (!forceStandard) return
 
-            //Source ImageView
-            // 旧实现把 OplusWifiViewModel.getWifiLeftResId 的 StateFlow<Int> 换成 StateFlow<Drawable>，
-            // 下游按 Int 取资源 id 时 as Number 抛 ClassCastException 打死 SystemUI。
-            // 现在只在宿主贴图时换图：命中宿主 wifi_left 就把图标换成本地绘制的数字，不碰任何流类型
-            val imageViewClass = "android.widget.ImageView".toClass().resolve()
-
-            //宿主直接贴资源 id（缺 O17 信号图的三方主题才会用到 wifi_left 图标）
-            imageViewClass.firstMethod {
-                name = "setImageResource"; parameters(Int::class)
-            }.intercept {
-                val view = instanceOrNull<ImageView>() ?: return@intercept proceed()
-                val drawable = digitDrawableFor(view) ?: return@intercept proceed()
-                //跳过宿主原图直接贴自绘数字，贴图会再进 setImageDrawable，那里按类型短路
-                view.setImageDrawable(drawable)
-                null
-            }
-
-            //宿主自己取 Drawable 再贴图
-            imageViewClass.firstMethod {
-                name = "setImageDrawable"; parameters(Drawable::class)
-            }.intercept {
-                val view = instanceOrNull<ImageView>() ?: return@intercept proceed()
-                val incoming = arg<Drawable>(0)
-                if (incoming is WifiStandardIconDrawable) return@intercept proceed()
-                //宿主清空图标（未连接等）时保持原样
-                if (incoming == null) return@intercept proceed()
-                val drawable = digitDrawableFor(view) ?: return@intercept proceed()
-                proceed(arrayOf<Any?>(drawable))
-            }
-
             //Source OplusWifiSignalExImpl
             // 宿主只给 11AX(6)/11BE(8) 赋值：技术标准图标开时 wifiLeftResId 给 stat_signal_wifi_6/7，
             // 或 O17 主题下 wifiLeftText 给 "6"/"7"。11N(4)/11AC(5) 两条路径都返回空，两个槽位一并隐藏，
@@ -148,15 +118,6 @@ object WiFiDataIconRelated : YukiBaseHooker() {
                         result
                     }
             }.onFailure { YLog.warn("wifi left bindEx hook failed: " + it.message) }
-        }
-
-        private fun digitDrawableFor(view: ImageView): Drawable? {
-            if (view.id == 0 || view.id != resolveWifiLeftId(view.context)) return null
-            lastWifiLeftView = WeakReference(view)
-            ensureWifiCallback(view.context)
-            val digit = digitOf(wifiStandard) ?: return null
-            if (!isStandardIconEnabled(view.context)) return null
-            return buildDigitDrawable(view.context, digit)
         }
 
         private fun captureLeftViews(viewGroup: ViewGroup) {
@@ -256,14 +217,6 @@ object WiFiDataIconRelated : YukiBaseHooker() {
                 context.resources.getIdentifier(WIFI_LEFT_TV_ID_NAME, "id", packageName)
             if (wifiLeftTvId == 0) YLog.warn("wifi_left_tv not found in $packageName resources")
             return wifiLeftTvId
-        }
-
-        private fun digitOf(standard: Int): Char? = when (standard) {
-            ScanResult.WIFI_STANDARD_11N -> '4'
-            ScanResult.WIFI_STANDARD_11AC -> '5'
-            ScanResult.WIFI_STANDARD_11AX -> '6'
-            ScanResult.WIFI_STANDARD_11BE -> '7'
-            else -> null
         }
 
         //宿主自己会给 11AX/11BE 出数字（还会出 "6E"），这里只补宿主不管的 11N/11AC
