@@ -43,6 +43,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -852,6 +853,15 @@ fun ScopeScreen(
         if (builder.highlightSlot.value == slot) builder.highlightSlot.value = null
     }
 
+    // 页面 DSL lambda 用 rememberUpdatedState 跟踪，而不是让下面的 buildEntries 直接闭包捕获：
+    // listItems 被 remember 冻住后，冻住的那份 buildEntries 捕获的是首次组合的 content。页面若把值
+    // 读进局部变量再闭包传进来（搜索页的 queryNow / filteredNow 就是这样），重组产生的新 lambda
+    // 永远不会被执行 —— 输入框 value 恒为旧值（输入法弹得出来、字却打不上去），结果列表也不刷新。
+    // 读 State 的 latest 版本可让 LazyList 的 derivedStateOf 在 lambda 换代时重算，同时保留
+    // 「页面每帧重组不重建列表内容」的性能收益。
+    val latestContent = rememberUpdatedState(content)
+    val latestFullContent = rememberUpdatedState(fullContent)
+
     // 唯一的 LazyColumn item 缝：条目描述（槽位/分段/元数据）只构建一次，主题差异只在这里分派
     val buildEntries: LazyListScope.() -> Unit = {
         // 条目重建必须在 LazyColumn 的 content lambda 内执行（而不是 ScopeScreen 函数体）：
@@ -866,11 +876,13 @@ fun ScopeScreen(
         //（实测：不读 revision 时写入偏好后只有函数体重建、条目内容不重组）。
         // 读一次 revision 让列表内容直接依赖它，与 systemInfo / rows 走同一条快照链。
         revisionState.value
+        val pageContent = latestContent.value
+        val pageFullContent = latestFullContent.value
         builder.beginBuild()
-        builder.content()
+        pageContent(builder)
         builder.computeSegments()
-        if (fullContent != null) {
-            item(key = "full") { fullContent(this, builder) }
+        if (pageFullContent != null) {
+            item(key = "full") { pageFullContent(this, builder) }
         } else {
             builder.entries.forEach { entry ->
                 item(key = entry.itemKey) {
