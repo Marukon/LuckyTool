@@ -17,6 +17,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.view.isVisible
+import com.highcapable.betterandroid.ui.extension.view.textToString
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.VariousClass
@@ -82,6 +83,10 @@ object WiFiDataIconRelated : YukiBaseHooker() {
         @Volatile
         private var injectedText: String? = null
 
+        // 抓到宿主槽位之前不去碰 View.setVisibility，避免在状态栏建好前白跑 id 解析
+        @Volatile
+        private var leftSlotCaptured = false
+
         // 双 WiFi / PassPoint / 系统技术标准图标开关的判定要走反射和设置查询，按时间窗口缓存结果
         @Volatile
         private var gateCheckedAt = 0L
@@ -134,26 +139,33 @@ object WiFiDataIconRelated : YukiBaseHooker() {
 
             //Source OplusWifiSignalExImpl
             // 宿主只给 11AX(6)/11BE(8) 赋值：技术标准图标开时 wifiLeftResId 给 stat_signal_wifi_6/7，
-            // 或 O17 主题下 wifiLeftText 给 "6"/"7"。11N(4)/11AC(5) 两条路径都返回空，两个槽位直接隐藏，
-            // 所以这两个标准要在宿主绑定和每次刷新之后自己补上
-            "com.oplus.systemui.statusbar.pipeline.OplusWifiSignalExImpl".toClass().resolve()
-                .firstMethod { name = "bindEx" }.intercept {
-                    val result = proceed()
-                    arg<ViewGroup>(0)?.let { captureLeftViews(it) }
-                    result
-                }
-
-            //bindEx$2$1$2$1 是宿主 combine(wifiLeftResId, wifiLeftText) 的转换 lambda，
-            //(resId, text) 每次变化都会跑一遍并把两个槽位重新摆一次，这里跟着补画
+            // 或 O17 主题下 wifiLeftText 给 "6"/"7"。11N(4)/11AC(5) 两条路径都返回空，两个槽位一并隐藏，
+            // 所以这两个标准要在宿主每次摆完槽位之后自己补上
             runCatching {
-                "com.oplus.systemui.statusbar.pipeline.OplusWifiSignalExImpl\$bindEx\$2\$1\$2\$1".toClass()
-                    .resolve().firstMethod { name = "invokeSuspend" }.intercept {
+                "com.oplus.systemui.statusbar.pipeline.OplusWifiSignalExImpl".toClass().resolve()
+                    .firstMethod { name = "bindEx"; parameterCount = 3 }.intercept {
                         val result = proceed()
-                        observeHostLeftRenderer()
-                        applyLowStandardDigit()
+                        arg<ViewGroup>(0)?.let { captureLeftViews(it) }
                         result
                     }
-            }.onFailure { YLog.warn("wifi left lambda hook failed: " + it.message) }
+            }.onFailure { YLog.warn("wifi left bindEx hook failed: " + it.message) }
+
+            //Source View
+            // 宿主的槽位渲染最后都落在 framework 的 setter 上（setImageResource / setText / setVisibility），
+            // 所以跟着 setVisibility 补画：不绑死混淆出来的 lambda 类名，又能保证补画排在宿主收图之后
+            "android.view.View".toClass().resolve().firstMethod {
+                name = "setVisibility"; parameters(Int::class)
+            }.intercept {
+                val view = instanceOrNull<View>() ?: return@intercept proceed()
+                if (!leftSlotCaptured) return@intercept proceed()
+                val isLeftTv = isWifiLeftTextView(view)
+                if (!isLeftTv && !isWifiLeftImageView(view)) return@intercept proceed()
+                val result = proceed()
+                //宿主在展示自己的 6/7 时记下用哪个槽位，把没人用的槽位收起来时才轮到我们补画
+                if (view.visibility == View.VISIBLE) hostTextMode = isLeftTv
+                else applyLowStandardDigit()
+                result
+            }
         }
 
         private fun digitDrawableFor(view: ImageView): Drawable? {
@@ -163,6 +175,18 @@ object WiFiDataIconRelated : YukiBaseHooker() {
             val digit = digitOf(wifiStandard) ?: return null
             if (!isStandardIconEnabled(view.context)) return null
             return buildDigitDrawable(view.context, digit)
+        }
+
+        private fun isWifiLeftTextView(view: View): Boolean {
+            if (view !is TextView) return false
+            val id = resolveWifiLeftTvId(view.context)
+            return id != 0 && view.id == id
+        }
+
+        private fun isWifiLeftImageView(view: View): Boolean {
+            if (view !is ImageView) return false
+            val id = resolveWifiLeftId(view.context)
+            return id != 0 && view.id == id
         }
 
         private fun captureLeftViews(viewGroup: ViewGroup) {
@@ -175,6 +199,7 @@ object WiFiDataIconRelated : YukiBaseHooker() {
             if (leftTvId != 0) viewGroup.findViewById<TextView>(leftTvId)?.let {
                 lastWifiLeftTv = WeakReference(it)
             }
+            leftSlotCaptured = true
             ensureWifiCallback(context)
             observeHostLeftRenderer()
             applyLowStandardDigit()
@@ -205,7 +230,7 @@ object WiFiDataIconRelated : YukiBaseHooker() {
                 val text = digit.toString()
                 injectedText = text
                 textView.text = text
-                if (textView.visibility != View.VISIBLE) textView.setVisibility(View.VISIBLE)
+                if (textView.visibility != View.VISIBLE) textView.visibility = View.VISIBLE
             } else {
                 val imageView = lastWifiLeftView?.get() ?: return
                 if (!isStandardIconEnabled(imageView.context)) return
@@ -224,9 +249,9 @@ object WiFiDataIconRelated : YukiBaseHooker() {
             if (injected != null) {
                 injectedText = null
                 val textView = lastWifiLeftTv?.get()
-                if (textView != null && textView.text?.toString() == injected) {
+                if (textView != null && textView.textToString() == injected) {
                     textView.text = ""
-                    textView.setVisibility(View.GONE)
+                    textView.visibility = View.GONE
                 }
             }
             val imageView = lastWifiLeftView?.get() ?: return
