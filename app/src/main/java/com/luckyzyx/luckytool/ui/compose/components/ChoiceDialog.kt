@@ -391,36 +391,44 @@ private fun MiuixChoiceDialog(
     }
 }
 
-/** Miuix 线行尾：多选为「自定义动作 + 勾选框」，单选为选中勾，动作列表为空 */
+/**
+ * Miuix 线行尾：多选为「自定义动作 + 勾选框」，单选为选中勾，动作列表为空。
+ *
+ * 库内 BasicComponent 把 endActions 包在一个默认顶对齐的 Row 里，而动作按钮的触控区有 40dp、
+ * 勾选框只有 26dp，顶对齐会让图标比勾选态高出半行；所以这里统一用垂直居中的 Row 收口，
+ * 动作与指示器共用同一条水平中轴。
+ */
 @Composable
-private fun miuixEndActions(row: ChoiceRowModel): (@Composable RowScope.() -> Unit)? = when (row.indicator) {
-    ChoiceIndicator.None -> {
-        val actions = row.actions
-        if (actions != null) {
-            { actions() }
-        } else null
+private fun miuixEndActions(row: ChoiceRowModel): (@Composable RowScope.() -> Unit)? {
+    val actions = row.actions
+    val hasIndicator = when (row.indicator) {
+        ChoiceIndicator.None -> false
+        ChoiceIndicator.Selected -> row.checked
+        ChoiceIndicator.Checkbox -> true
     }
+    if (actions == null && !hasIndicator) return null
+    return {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            actions?.invoke()
+            when (row.indicator) {
+                ChoiceIndicator.None -> Unit
+                ChoiceIndicator.Selected -> if (row.checked) {
+                    MiuixIcon(
+                        imageVector = MiuixIcons.Basic.Check,
+                        contentDescription = null,
+                        tint = MiuixTheme.colorScheme.primary,
+                    )
+                }
 
-    ChoiceIndicator.Selected -> if (row.checked) {
-        {
-            MiuixIcon(
-                imageVector = MiuixIcons.Basic.Check,
-                contentDescription = null,
-                tint = MiuixTheme.colorScheme.primary,
-            )
-        }
-    } else {
-        null
-    }
-
-    ChoiceIndicator.Checkbox -> {
-        {
-            row.actions?.invoke()
-            MiuixCheckbox(
-                state = ToggleableState(row.checked),
-                onClick = null,
-                enabled = row.item.enabled,
-            )
+                ChoiceIndicator.Checkbox -> MiuixCheckbox(
+                    state = ToggleableState(row.checked),
+                    onClick = null,
+                    enabled = row.item.enabled,
+                )
+            }
         }
     }
 }

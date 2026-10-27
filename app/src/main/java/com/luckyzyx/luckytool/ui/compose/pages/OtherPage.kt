@@ -322,6 +322,9 @@ private fun ShortcutDialog(context: Context, onDismiss: () -> Unit) {
         beans.map { bean -> ChoiceItem(key = bean.key, title = bean.label) }
     }
     val pinContentDescription = stringResource(R.string.pin_shortcut)
+    // 固定的图标两条 UI 线共用同一个图钉，只有按钮外壳按模式区分，
+    // 否则同一行在 Miuix / Material 下会显示成两个不同含义的图标
+    val pinIcon = MiuixIcons.Pin
     // Pin 改为行尾自定义动作：固定被点的那一项，不再用当前勾选反推
     val pinAction: (@Composable (ChoiceItem) -> Unit)? = if (
         shortcutUtils.shortcutManager.isRequestPinShortcutSupported
@@ -334,17 +337,11 @@ private fun ShortcutDialog(context: Context, onDismiss: () -> Unit) {
             }
             when (LocalUiMode.current) {
                 UiMode.Miuix -> MiuixIconButton(onClick = onClick) {
-                    MiuixIcon(
-                        imageVector = MiuixIcons.Pin,
-                        contentDescription = pinContentDescription,
-                    )
+                    MiuixIcon(imageVector = pinIcon, contentDescription = pinContentDescription)
                 }
 
                 UiMode.Material -> IconButton(onClick = onClick) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.AddToHomeScreen,
-                        contentDescription = pinContentDescription,
-                    )
+                    Icon(imageVector = pinIcon, contentDescription = pinContentDescription)
                 }
             }
         }
