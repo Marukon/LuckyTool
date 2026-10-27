@@ -51,7 +51,7 @@ class WifiStandardIconDrawable(
         val top = bounds.top + (boxHeight - drawHeight) / 2f
 
         val tint = tintList
-        val color = if (tint != null) tint.getColorForState(state, tint.defaultColor) else Color.WHITE
+        val color = tint?.getColorForState(state, tint.defaultColor) ?: Color.WHITE
         paint.textSize = drawHeight * TEXT_SIZE_RATIO
         paint.color = color
         paint.alpha = alphaValue * Color.alpha(color) / 255
@@ -78,6 +78,7 @@ class WifiStandardIconDrawable(
 
     override fun getColorFilter(): ColorFilter? = colorFilter
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 
     override fun setTintList(tint: ColorStateList?) {
