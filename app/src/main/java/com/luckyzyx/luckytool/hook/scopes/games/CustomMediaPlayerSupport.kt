@@ -16,7 +16,8 @@ object CustomMediaPlayerSupport : YukiBaseHooker() {
         //Source MediaSessionHelper
         VariousClass(
             "business.module.media.MediaSessionHelper", //V8 V9
-            "com.oplus.games.musicplayer.main.MediaSessionHelper" //V10
+            "com.oplus.games.musicplayer.main.MediaSessionHelper", //V10
+            "com.oplus.games.musicplayer.main.c" //V10.43+ 本体被混淆，media_controller_config 支持列表
         ).toClass().resolve().apply {
             firstMethod {
                 emptyParameters()
