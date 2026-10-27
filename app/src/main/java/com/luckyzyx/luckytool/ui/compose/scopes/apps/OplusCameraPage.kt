@@ -2,26 +2,15 @@ package com.luckyzyx.luckytool.ui.compose.scopes.apps
 
 import android.content.Context
 import android.os.Build
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -29,8 +18,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.data.CameraFilter
 import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
+import com.luckyzyx.luckytool.ui.compose.components.ChoiceItem
+import com.luckyzyx.luckytool.ui.compose.components.MultiChoiceDialog
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialListItem
-import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixCheckboxItem
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixListItem
 import com.luckyzyx.luckytool.ui.compose.scopes.ScopePageSpec
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
@@ -43,8 +33,6 @@ import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.arraySummaryLine
 import com.luckyzyx.luckytool.utils.checkPackName
 import com.luckyzyx.luckytool.utils.getOSVersionCode
-import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
-import top.yukonga.miuix.kmp.overlay.OverlayDialog
 
 /**
  * 相机页（旧 ui.fragment.scopes.apps.OplusCamera 的 Compose 等价物）。
@@ -326,85 +314,24 @@ object OplusCameraPage {
         data: FilterDialogData,
         onDismiss: () -> Unit,
     ) {
-        var checked by remember {
-            mutableStateOf(data.filters.filter { it.isEnable }.map { it.key }.toMutableSet())
+        // items / selectedKeys 用 remember(data) 固定身份：MultiChoiceDialog 的临时勾选按两者记忆，
+        // 每次重组重建集合会把用户刚点的勾选重置回初始值
+        val items = remember(data) {
+            data.filters.map { filter -> ChoiceItem(key = filter.key, title = filter.title) }
         }
-        val confirm = {
-            val set = checked.toSet()
-            state.set(data.key, set)
-            data.onSaved(set)
-            onDismiss()
+        val selectedKeys = remember(data) {
+            data.filters.filter { it.isEnable }.map { it.key }.toSet()
         }
-        val toggle: (String, Boolean) -> Unit = { key, value ->
-            checked = checked.toMutableSet().apply { if (value) add(key) else remove(key) }
-        }
-        if (LocalUiMode.current == UiMode.Miuix) {
-            OverlayDialog(
-                show = true,
-                title = data.title,
-                onDismissRequest = onDismiss,
-            ) {
-                Column {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 380.dp)
-                            .verticalScroll(rememberScrollState()),
-                    ) {
-                        data.filters.forEach { filter ->
-                            MiuixCheckboxItem(
-                                title = filter.title,
-                                checked = filter.key in checked,
-                                onCheckedChange = { toggle(filter.key, it) },
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        MiuixTextButton(
-                            text = stringResource(android.R.string.cancel),
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f),
-                        )
-                        MiuixTextButton(
-                            text = stringResource(android.R.string.ok),
-                            onClick = confirm,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
-        } else {
-            AlertDialog(
-                onDismissRequest = onDismiss,
-                title = { Text(data.title) },
-                text = {
-                    Column {
-                        data.filters.forEach { filter ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { toggle(filter.key, filter.key !in checked) }
-                                    .padding(vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Checkbox(checked = filter.key in checked, onCheckedChange = null)
-                                Text(filter.title)
-                            }
-                        }
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = onDismiss) {
-                        Text(stringResource(android.R.string.cancel))
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = confirm) { Text(stringResource(android.R.string.ok)) }
-                },
-            )
-        }
+        MultiChoiceDialog(
+            title = data.title,
+            items = items,
+            selectedKeys = selectedKeys,
+            onDismiss = onDismiss,
+            onConfirm = { keys ->
+                state.set(data.key, keys)
+                data.onSaved(keys)
+                onDismiss()
+            },
+        )
     }
 }

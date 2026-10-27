@@ -9,9 +9,7 @@ import android.util.ArraySet
 import androidx.collection.ArrayMap
 import androidx.collection.arrayMapOf
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -21,7 +19,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -30,7 +27,6 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -42,12 +38,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -61,6 +55,8 @@ import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.data.AppInfo
 import com.luckyzyx.luckytool.data.AppIntentInfo
 import com.luckyzyx.luckytool.enums.IntentType
+import com.luckyzyx.luckytool.ui.compose.components.ChoiceItem
+import com.luckyzyx.luckytool.ui.compose.components.MultiChoiceDialog
 import com.luckyzyx.luckytool.ui.compose.components.PrefGroup
 import com.luckyzyx.luckytool.ui.compose.components.PrefSwitchRow
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItem
@@ -68,7 +64,6 @@ import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItemContain
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialListItem
 import com.luckyzyx.luckytool.ui.compose.components.material.materialBottomInset
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixCheckboxItem
-import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixDialogScrollBody
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixListItem
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefDefaults
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefItem
@@ -93,10 +88,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
-import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
 import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
 
@@ -854,10 +847,11 @@ private fun RowScope.IntentCountChip(
 }
 
 /**
- * 多选 Intent 对话框：已启用项置顶预选、按 label/activity 过滤、全选/清空、
- * confirm 回传 `ArrayList(selected)`（对话框内状态，取消不落盘）。
- * Material 线 `AlertDialog` 列表行带 32dp 图标 + Checkbox；Miuix 线 `OverlayDialog` 用
- * `MiuixCheckboxItem` 多选（库行件无前置图标槽位、无 maxLines/ellipsis，属允许差异）。
+ * 多选 Intent 对话框：已启用项置顶预选、按 label/activity 过滤、全选/清空，
+ * confirm 回传 ArrayList(selected)（对话框内临时态，取消不落盘）。
+ *
+ * 行渲染、全选/计数行与按钮行统一交给 MultiChoiceDialog；两条渲染线合并后
+ * 旧 Material 线行首的 32dp 应用图标不再单独渲染，信息由 title/summary 承担。
  */
 @Composable
 internal fun IntentInfoSelectDialog(
@@ -869,9 +863,7 @@ internal fun IntentInfoSelectDialog(
     val context = LocalContext.current
     val pm = context.packageManager
     var query by remember(data) { mutableStateOf("") }
-    val selected = remember(data) {
-        mutableStateListOf<AppIntentInfo>().apply { addAll(data.enabled) }
-    }
+    // 已启用项置顶；过滤只在它上面收缩，所以已启用项之间的相对顺序与旧实现一致
     val ordered = remember(data) {
         ArrayList<AppIntentInfo>().apply {
             addAll(data.appInfos.filter { it !in data.enabled })
@@ -889,178 +881,52 @@ internal fun IntentInfoSelectDialog(
                 )
         }
     }
+    val items = filtered.map { info ->
+        ChoiceItem(
+            key = info.choiceKey(),
+            title = "${resolveMap[info]?.loadLabel(pm) ?: info.name} " + intentTypeLabel(info.type),
+            summary = info.activity,
+        )
+    }
+    MultiChoiceDialog(
+        title = stringResource(R.string.custom_config_app_intent_list),
+        items = items,
+        selectedKeys = remember(data) { data.enabled.map { it.choiceKey() }.toSet() },
+        onDismiss = onDismiss,
+        onConfirm = { keys ->
+            // 回传顺序沿用已启用项置顶的稳定顺序，不让 set 的迭代顺序决定落盘内容
+            onConfirm(ArrayList(ordered.filter { it.choiceKey() in keys }))
+        },
+        header = { IntentQueryField(query = query, onQueryChange = { query = it }) },
+        showSelectAll = true,
+    )
+}
 
+/** 行 key（也是 confirm 回传时还原对象的索引）：沿用旧的 action|type|activity 组合 */
+private fun AppIntentInfo.choiceKey(): String = "$action|$type|$activity"
+
+/**
+ * 对话框内搜索框：MiuixTextField 与 OutlinedTextField 来自不同库、没有统一封装，
+ * 只在这一处按 UI 线分派，调用点的 header 里仍然只有一次调用。
+ */
+@Composable
+private fun IntentQueryField(query: String, onQueryChange: (String) -> Unit) {
     if (LocalUiMode.current == UiMode.Miuix) {
-        OverlayDialog(
-            show = true,
-            title = stringResource(R.string.custom_config_app_intent_list),
-            onDismissRequest = onDismiss,
-        ) {
-            // 正文（含惰性列表）拿有界剩余高度，按钮行固定在正文之外，键盘弹出时不会被压成 0 高度
-            MiuixDialogScrollBody(
-                scrollable = false,
-                actions = {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                    ) {
-                        MiuixTextButton(
-                            text = stringResource(android.R.string.cancel),
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        MiuixTextButton(
-                            text = stringResource(android.R.string.ok),
-                            onClick = { onConfirm(ArrayList(selected)) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                },
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    MiuixTextButton(
-                        text = stringResource(android.R.string.selectAll),
-                        onClick = {
-                            if (selected.size == ordered.size) {
-                                selected.clear()
-                            } else {
-                                selected.clear()
-                                selected.addAll(ordered)
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    MiuixText(
-                        "${selected.size}/${ordered.size}",
-                        style = MiuixTheme.textStyles.body2,
-                    )
-                }
-                MiuixTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    singleLine = true,
-                    label = "ActivityName",
-                    useLabelAsPlaceholder = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                )
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f, fill = false)
-                        .heightIn(max = 380.dp),
-                    verticalArrangement = Arrangement.spacedBy(MiuixPrefDefaults.ItemGap),
-                    overscrollEffect = null,
-                ) {
-                    items(filtered, key = { "${it.action}|${it.type}|${it.activity}" }) { info ->
-                        MiuixCheckboxItem(
-                            title = "${resolveMap[info]?.loadLabel(pm) ?: info.name} " +
-                                intentTypeLabel(info.type),
-                            checked = selected.contains(info),
-                            onCheckedChange = { v ->
-                                if (v) {
-                                    if (!selected.contains(info)) selected.add(info)
-                                } else {
-                                    selected.remove(info)
-                                }
-                            },
-                            summary = info.activity,
-                        )
-                    }
-                }
-            }
-        }
+        MiuixTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            singleLine = true,
+            label = stringResource(R.string.activity_search_hint),
+            useLabelAsPlaceholder = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
     } else {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            confirmButton = {
-                TextButton(onClick = { onConfirm(ArrayList(selected)) }) {
-                    Text(stringResource(android.R.string.ok))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
-            },
-            text = {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(
-                            onClick = {
-                                if (selected.size == ordered.size) {
-                                    selected.clear()
-                                } else {
-                                    selected.clear()
-                                    selected.addAll(ordered)
-                                }
-                            },
-                        ) { Text(stringResource(android.R.string.selectAll)) }
-                        Spacer(Modifier.weight(1f))
-                        Text("${selected.size}/${ordered.size}")
-                    }
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        singleLine = true,
-                        placeholder = { Text("ActivityName") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 380.dp)) {
-                        items(filtered, key = { "${it.action}|${it.type}|${it.activity}" }) { info ->
-                            val ri = resolveMap[info]
-                            val checked = selected.contains(info)
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        if (checked) selected.remove(info)
-                                        else selected.add(info)
-                                    }
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Box(Modifier.size(40.dp)) {
-                                    ri?.loadIcon(pm)?.let { d ->
-                                        Image(
-                                            remember(info) { d.toBitmap().asImageBitmap() },
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier.size(32.dp),
-                                        )
-                                    }
-                                }
-                                Spacer(Modifier.width(12.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        "${ri?.loadLabel(pm) ?: info.name} ${intentTypeLabel(info.type)}",
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        info.activity,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                                Checkbox(
-                                    checked = checked,
-                                    onCheckedChange = { v ->
-                                        if (v) {
-                                            if (!selected.contains(info)) selected.add(info)
-                                        } else {
-                                            selected.remove(info)
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
-            },
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            singleLine = true,
+            placeholder = { Text(stringResource(R.string.activity_search_hint)) },
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

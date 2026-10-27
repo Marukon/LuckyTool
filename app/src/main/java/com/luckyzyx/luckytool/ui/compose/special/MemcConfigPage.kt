@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -21,7 +20,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SecondaryTabRow
@@ -47,7 +45,9 @@ import androidx.compose.ui.unit.dp
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.data.MemcConfigActivity
 import com.luckyzyx.luckytool.data.MemcConfigPackage
+import com.luckyzyx.luckytool.ui.compose.components.ActionListDialog
 import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
+import com.luckyzyx.luckytool.ui.compose.components.ChoiceItem
 import com.luckyzyx.luckytool.ui.compose.components.PrefCard
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItem
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialListItem
@@ -436,51 +436,16 @@ internal fun LazyItemScope.MemcConfigContent() {
     }
 
     if (showVersionSheet) {
-        if (miuix) {
-            OverlayDialog(
-                show = true,
-                onDismissRequest = { showVersionSheet = false },
-            ) {
-                Column {
-                    listOf("x7", "x7p").forEach { v ->
-                        MiuixListItem(
-                            title = v,
-                            onClick = {
-                                showVersionSheet = false
-                                scope.launch { state.reset(null, v) }
-                            },
-                        )
-                    }
-                    MiuixTextButton(
-                        text = stringResource(android.R.string.cancel),
-                        onClick = { showVersionSheet = false },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-        } else {
-            AlertDialog(
-                onDismissRequest = { showVersionSheet = false },
-                text = {
-                    Column {
-                        listOf("x7", "x7p").forEach { v ->
-                            ListItem(
-                                modifier = Modifier.clickable {
-                                    showVersionSheet = false
-                                    scope.launch { state.reset(null, v) }
-                                },
-                                content = { Text(v) },
-                            )
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showVersionSheet = false }) {
-                        Text(stringResource(android.R.string.cancel))
-                    }
-                },
-            )
-        }
+        ActionListDialog(
+            title = stringResource(R.string.memc_version_select_title),
+            items = listOf("x7", "x7p").map { ChoiceItem(key = it, title = it) },
+            onDismiss = { showVersionSheet = false },
+            onSelect = { item ->
+                // 动作列表语义：组件自己不关闭弹层，先关再执行（保持原来「关弹层 → 重置」的顺序）
+                showVersionSheet = false
+                scope.launch { state.reset(null, item.key) }
+            },
+        )
     }
 }
 
@@ -973,8 +938,8 @@ internal fun filterMemcActivityOptions(
 /**
  * Activity 选择弹层：搜索框 + 列表（标题=label / 副标题=类名）。
  *
- * 与页面级的 [MemcSearchField] 不同，弹层内容自带内边距，字段不再额外加水平内边距；
- * 行件沿用 [AppPickerDialog] 的「显示名当标题、标识当副标题」约定。
+ * 行渲染、按钮行与空态统一交给 [ActionListDialog]：这里只留过滤与 key→选项的还原。
+ * 两条渲染线合并后行首图标不再渲染（ChoiceItem 没有行首槽），显示信息由标题/副标题承担。
  */
 @Composable
 private fun MemcActivityPickerDialog(
@@ -984,103 +949,53 @@ private fun MemcActivityPickerDialog(
 ) {
     var query by remember { mutableStateOf("") }
     val filtered = remember(options, query) { filterMemcActivityOptions(options, query) }
+    val items = filtered.map { ChoiceItem(key = it.name, title = it.label, summary = it.name) }
+    ActionListDialog(
+        title = stringResource(R.string.memc_activity_picker_title),
+        items = items,
+        onDismiss = onDismiss,
+        onSelect = { item ->
+            // 动作列表语义：先按 key 还原选项再回调，关不关闭由调用点决定（原来是先动作后关闭）
+            options.firstOrNull { it.name == item.key }?.let(onSelect)
+        },
+        header = { MemcActivityQueryField(query = query, onQueryChange = { query = it }) },
+    )
+}
 
+/**
+ * 弹层内搜索框：MiuixTextField 与 OutlinedTextField 没有统一封装（页面级的 MemcSearchField
+ * 带水平内边距语义，不适用于弹层正文），只在这一处按 UI 线分派，放大镜图标保持原样。
+ */
+@Composable
+private fun MemcActivityQueryField(query: String, onQueryChange: (String) -> Unit) {
     if (LocalUiMode.current == UiMode.Miuix) {
-        OverlayDialog(
-            show = true,
-            title = "ActivityName",
-            onDismissRequest = onDismiss,
-        ) {
-            MiuixDialogScrollBody(
-                scrollable = false,
-                actions = {
-                    MiuixTextButton(
-                        text = stringResource(android.R.string.cancel),
-                        onClick = onDismiss,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                },
-            ) {
-                MiuixTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    singleLine = true,
-                    label = "ActivityName",
-                    useLabelAsPlaceholder = true,
-                    leadingIcon = {
-                        MiuixIcon(
-                            painterResource(R.drawable.ic_baseline_search_24),
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
+        MiuixTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            singleLine = true,
+            label = stringResource(R.string.activity_search_hint),
+            useLabelAsPlaceholder = true,
+            leadingIcon = {
+                MiuixIcon(
+                    painterResource(R.drawable.ic_baseline_search_24),
+                    contentDescription = null,
                 )
-                LazyColumn(
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f, fill = false)
-                        .heightIn(max = 320.dp),
-                ) {
-                    items(filtered, key = { it.name }) { option ->
-                        MiuixListItem(
-                            title = option.label,
-                            summary = option.name,
-                            onClick = { onSelect(option) },
-                        )
-                    }
-                }
-            }
-        }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
     } else {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text("ActivityName") },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        singleLine = true,
-                        placeholder = { Text("ActivityName") },
-                        leadingIcon = {
-                            Icon(
-                                painterResource(R.drawable.ic_baseline_search_24),
-                                contentDescription = null,
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    LazyColumn(Modifier.heightIn(max = 320.dp)) {
-                        items(filtered, key = { it.name }) { option ->
-                            MaterialListItem(
-                                onClick = { onSelect(option) },
-                                headlineContent = {
-                                    Text(
-                                        option.label,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                },
-                                supportingContent = {
-                                    Text(
-                                        option.name,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                },
-                            )
-                            HorizontalDivider()
-                        }
-                    }
-                }
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            singleLine = true,
+            placeholder = { Text(stringResource(R.string.activity_search_hint)) },
+            leadingIcon = {
+                Icon(
+                    painterResource(R.drawable.ic_baseline_search_24),
+                    contentDescription = null,
+                )
             },
-            confirmButton = {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-            },
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
