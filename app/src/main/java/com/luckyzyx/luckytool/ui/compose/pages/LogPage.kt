@@ -27,7 +27,7 @@ fun LogPage() {
                 .padding(padding),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "重新规划中......", fontSize = 18.sp)
+            Text(text = "页面重新规划中...\nPage is being redesigned...", fontSize = 18.sp)
         }
     }
 }
