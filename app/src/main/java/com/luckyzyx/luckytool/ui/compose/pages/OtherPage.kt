@@ -6,22 +6,10 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.collection.ArrayMap
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.AddToHomeScreen
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -30,28 +18,19 @@ import androidx.compose.material.icons.rounded.Adb
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.TouchApp
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.highcapable.kavaref.extension.classOf
 import com.luckyzyx.luckytool.ITileServiceController
@@ -59,8 +38,12 @@ import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.service.AdbService
 import com.luckyzyx.luckytool.service.TilesService
 import com.luckyzyx.luckytool.ui.activity.MainActivity
+import com.luckyzyx.luckytool.ui.compose.components.ActionListDialog
 import com.luckyzyx.luckytool.ui.compose.components.AdbDebugDialog
 import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
+import com.luckyzyx.luckytool.ui.compose.components.ChoiceItem
+import com.luckyzyx.luckytool.ui.compose.components.MultiChoiceDialog
+import com.luckyzyx.luckytool.ui.compose.components.SingleChoiceDialog
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.MainPageActivationEffect
 import com.luckyzyx.luckytool.ui.compose.components.OtherTopBarActions
@@ -79,14 +62,10 @@ import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.SettingsPrefs
 import com.luckyzyx.luckytool.utils.ShortcutUtils
 import com.luckyzyx.luckytool.utils.showToast
-import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.overlay.OverlayDialog
-import top.yukonga.miuix.kmp.preference.CheckboxLocation
-import top.yukonga.miuix.kmp.preference.CheckboxPreference
-import top.yukonga.miuix.kmp.preference.RadioButtonPreference
-import top.yukonga.miuix.kmp.basic.Text as MiuixText
-import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
+import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
+import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Pin
 
 /**
  * 其他页（旧 OtherFragment 的 Compose 等价实现）。
@@ -292,82 +271,43 @@ private fun TileListDialog(context: Context, onDismiss: () -> Unit) {
     val addFailText = stringResource(R.string.add_fail)
     val addRepeatText = stringResource(R.string.add_repeat)
     val addSuccessText = stringResource(R.string.add_success)
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> OverlayDialog(
-            show = true,
-            onDismissRequest = onDismiss,
-        ) {
-            Column {
-                tileInfos.forEach { serviceInfo ->
-                    val label = serviceInfo.loadLabel(context.packageManager).toString()
-                    BasicComponent(
-                        title = label,
-                        insideMargin = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-                        onClick = {
-                            val icon = serviceInfo.loadIcon(context.packageManager)
-                            statusBarManager.requestAddTileService(
-                                ComponentName(context.packageName, serviceInfo.name),
-                                label,
-                                android.graphics.drawable.Icon.createWithBitmap(icon.toBitmap()),
-                                context.mainExecutor
-                            ) { resultCode ->
-                                when (resultCode) {
-                                    StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_NOT_ADDED ->
-                                        context.showToast("$label $addFailText")
-
-                                    StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED ->
-                                        context.showToast("$label $addRepeatText")
-
-                                    StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED ->
-                                        context.showToast("$label $addSuccessText")
-                                }
-                            }
-                            onDismiss()
-                        },
-                    )
-                }
-            }
+    val items = remember(tileInfos) {
+        tileInfos.map { serviceInfo ->
+            ChoiceItem(
+                key = serviceInfo.name,
+                title = serviceInfo.loadLabel(context.packageManager).toString(),
+            )
         }
+    }
+    ActionListDialog(
+        title = stringResource(R.string.tile_list),
+        items = items,
+        onDismiss = onDismiss,
+        onSelect = { item ->
+            val serviceInfo = tileInfos.firstOrNull { it.name == item.key }
+            if (serviceInfo != null) {
+                val icon = serviceInfo.loadIcon(context.packageManager)
+                statusBarManager.requestAddTileService(
+                    ComponentName(context.packageName, serviceInfo.name),
+                    item.title,
+                    android.graphics.drawable.Icon.createWithBitmap(icon.toBitmap()),
+                    context.mainExecutor
+                ) { resultCode ->
+                    when (resultCode) {
+                        StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_NOT_ADDED ->
+                            context.showToast("${item.title} $addFailText")
 
-        UiMode.Material -> AlertDialog(
-            onDismissRequest = onDismiss,
-            confirmButton = {},
-            text = {
-                Column {
-                    tileInfos.forEach { serviceInfo ->
-                        val label = serviceInfo.loadLabel(context.packageManager).toString()
-                        Text(
-                            text = label,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    val icon = serviceInfo.loadIcon(context.packageManager)
-                                    statusBarManager.requestAddTileService(
-                                        ComponentName(context.packageName, serviceInfo.name),
-                                        label,
-                                        android.graphics.drawable.Icon.createWithBitmap(icon.toBitmap()),
-                                        context.mainExecutor
-                                    ) { resultCode ->
-                                        when (resultCode) {
-                                            StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_NOT_ADDED ->
-                                                context.showToast("$label $addFailText")
+                        StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED ->
+                            context.showToast("${item.title} $addRepeatText")
 
-                                            StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED ->
-                                                context.showToast("$label $addRepeatText")
-
-                                            StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED ->
-                                                context.showToast("$label $addSuccessText")
-                                        }
-                                    }
-                                    onDismiss()
-                                }
-                                .padding(vertical = 12.dp)
-                        )
+                        StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED ->
+                            context.showToast("${item.title} $addSuccessText")
                     }
                 }
-            },
-        )
-    }
+            }
+            onDismiss()
+        },
+    )
 }
 
 /** 模块快捷方式：多选启用 + Pin 到桌面（旧 shortcut 卡点击） */
@@ -375,132 +315,53 @@ private fun TileListDialog(context: Context, onDismiss: () -> Unit) {
 private fun ShortcutDialog(context: Context, onDismiss: () -> Unit) {
     val shortcutUtils = remember { ShortcutUtils(context) }
     val beans = remember { shortcutUtils.getDefaultShortcutBean() }
-    val checked = remember(beans) {
-        val enabledIds = shortcutUtils.getEnabledShortcutList().map { it.id }.toSet()
-        beans.map { bean -> enabledIds.contains(bean.key) }.toMutableStateList()
+    val enabledKeys = remember(beans) {
+        shortcutUtils.getEnabledShortcutList().map { it.id }.toSet()
     }
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> OverlayDialog(
-            show = true,
-            title = stringResource(R.string.set_module_shortcuts),
-            onDismissRequest = onDismiss,
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 360.dp)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                beans.forEachIndexed { i, bean ->
-                    CheckboxPreference(
-                        title = bean.label,
-                        checked = checked[i],
-                        onCheckedChange = { checked[i] = it },
-                        checkboxLocation = CheckboxLocation.End,
-                    )
+    val items = remember(beans) {
+        beans.map { bean -> ChoiceItem(key = bean.key, title = bean.label) }
+    }
+    val pinContentDescription = stringResource(R.string.pin_shortcut)
+    // Pin 改为行尾自定义动作：固定被点的那一项，不再用当前勾选反推
+    val pinAction: (@Composable (ChoiceItem) -> Unit)? = if (
+        shortcutUtils.shortcutManager.isRequestPinShortcutSupported
+    ) {
+        { item ->
+            val onClick: () -> Unit = {
+                beans.firstOrNull { it.key == item.key }?.let { bean ->
+                    shortcutUtils.requestPinShortcut(bean.toShortcutInfo(context))
                 }
             }
-            Row(modifier = Modifier.padding(top = 12.dp)) {
-                if (shortcutUtils.shortcutManager.isRequestPinShortcutSupported) {
-                    MiuixTextButton(
-                        text = "Pin",
-                        onClick = {
-                            val selected = beans.indices.filter { checked[it] }
-                            if (selected.size > 1) {
-                                context.showToast("Only select one item")
-                            } else {
-                                selected.firstOrNull()?.let { index ->
-                                    shortcutUtils.requestPinShortcut(
-                                        beans[index].toShortcutInfo(
-                                            context
-                                        )
-                                    )
-                                }
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
+            when (LocalUiMode.current) {
+                UiMode.Miuix -> MiuixIconButton(onClick = onClick) {
+                    MiuixIcon(
+                        imageVector = MiuixIcons.Pin,
+                        contentDescription = pinContentDescription,
                     )
-                    Spacer(Modifier.width(20.dp))
                 }
-                MiuixTextButton(
-                    text = stringResource(android.R.string.cancel),
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(20.dp))
-                MiuixTextButton(
-                    text = stringResource(android.R.string.ok),
-                    onClick = {
-                        beans.forEachIndexed { i, bean ->
-                            shortcutUtils.setShortcutStatus(beans, bean, checked[i])
-                        }
-                        onDismiss()
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.textButtonColorsPrimary(),
-                )
+
+                UiMode.Material -> IconButton(onClick = onClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.AddToHomeScreen,
+                        contentDescription = pinContentDescription,
+                    )
+                }
             }
         }
-
-        UiMode.Material -> AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text(stringResource(R.string.set_module_shortcuts)) },
-            text = {
-                Column {
-                    beans.forEachIndexed { i, bean ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .toggleable(
-                                    value = checked[i],
-                                    role = Role.Checkbox,
-                                    onValueChange = { checked[i] = it },
-                                )
-                                .padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Checkbox(checked = checked[i], onCheckedChange = { checked[i] = it })
-                            Spacer(Modifier.width(8.dp))
-                            Text(bean.label)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        beans.forEachIndexed { i, bean ->
-                            shortcutUtils.setShortcutStatus(beans, bean, checked[i])
-                        }
-                        onDismiss()
-                    },
-                ) { Text(stringResource(android.R.string.ok)) }
-            },
-            dismissButton = {
-                Row {
-                    if (shortcutUtils.shortcutManager.isRequestPinShortcutSupported) {
-                        TextButton(
-                            onClick = {
-                                val selected = beans.indices.filter { checked[it] }
-                                if (selected.size > 1) {
-                                    context.showToast("Only select one item")
-                                } else {
-                                    selected.firstOrNull()?.let { index ->
-                                        shortcutUtils.requestPinShortcut(
-                                            beans[index].toShortcutInfo(
-                                                context
-                                            )
-                                        )
-                                    }
-                                }
-                            },
-                        ) { Text("Pin") }
-                    }
-                    TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
-                }
-            },
-        )
-    }
+    } else null
+    MultiChoiceDialog(
+        title = stringResource(R.string.set_module_shortcuts),
+        items = items,
+        selectedKeys = enabledKeys,
+        onDismiss = onDismiss,
+        onConfirm = { keys ->
+            beans.forEachIndexed { _, bean ->
+                shortcutUtils.setShortcutStatus(beans, bean, bean.key in keys)
+            }
+            onDismiss()
+        },
+        itemActions = pinAction,
+    )
 }
 
 /** 触摸采样率档位（旧 initTouchPanelView） */
@@ -511,87 +372,24 @@ private fun TouchSamplingRateDialog(
     onDismiss: () -> Unit,
 ) {
     val touchs = remember { arrayOf("120", "180", "240", "360", "480", "600", "720") }
-    var tempSelection by remember {
-        mutableIntStateOf(touchs.indexOf(settings.getString(keyTouchSamplingRateLevel, "240")))
+    val initialIndex = remember {
+        touchs.indexOf(settings.getString(keyTouchSamplingRateLevel, "240"))
     }
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> OverlayDialog(
-            show = true,
-            title = stringResource(R.string.set_touch_sampling_rate_tile_level),
-            onDismissRequest = onDismiss,
-        ) {
-            Column {
-                touchs.forEachIndexed { position, level ->
-                    RadioButtonPreference(
-                        title = level,
-                        selected = tempSelection == position,
-                        onClick = { tempSelection = position },
-                    )
-                }
-            }
-            Row(modifier = Modifier.padding(top = 12.dp)) {
-                MiuixTextButton(
-                    text = stringResource(android.R.string.cancel),
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(20.dp))
-                MiuixTextButton(
-                    text = stringResource(android.R.string.ok),
-                    onClick = {
-                        val value =
-                            if (tempSelection > 0) touchs[tempSelection] else tempSelection.toString()
-                        settings.set(keyTouchSamplingRateLevel, value)
-                        controller?.touchMode = value.toInt()
-                        onDismiss()
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.textButtonColorsPrimary(),
-                )
-            }
-        }
-
-        UiMode.Material -> AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text(stringResource(R.string.set_touch_sampling_rate_tile_level)) },
-            text = {
-                Column {
-                    touchs.forEachIndexed { position, level ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .selectable(
-                                    selected = tempSelection == position,
-                                    role = Role.RadioButton,
-                                    onClick = { tempSelection = position },
-                                )
-                                .padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(
-                                selected = tempSelection == position,
-                                onClick = { tempSelection = position },
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(level)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val value =
-                            if (tempSelection > 0) touchs[tempSelection] else tempSelection.toString()
-                        settings.set(keyTouchSamplingRateLevel, value)
-                        controller?.touchMode = value.toInt()
-                        onDismiss()
-                    },
-                ) { Text(stringResource(android.R.string.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
-            },
-        )
+    val items = remember(touchs) {
+        touchs.map { level -> ChoiceItem(key = level, title = level) }
     }
+    SingleChoiceDialog(
+        title = stringResource(R.string.set_touch_sampling_rate_tile_level),
+        items = items,
+        selectedKey = touchs.getOrNull(initialIndex),
+        onDismiss = onDismiss,
+        onConfirm = { level ->
+            // 历史写值算法保持等价：索引 0 落库为 "0"（而不是 "120"）
+            val index = touchs.indexOf(level)
+            val value = if (index > 0) touchs[index] else index.toString()
+            settings.set(keyTouchSamplingRateLevel, value)
+            controller?.touchMode = value.toInt()
+            onDismiss()
+        },
+    )
 }

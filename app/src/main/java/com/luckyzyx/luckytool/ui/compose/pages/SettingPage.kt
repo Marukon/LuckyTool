@@ -11,9 +11,6 @@ import android.provider.OpenableColumns
 import android.util.ArraySet
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContract
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -56,6 +53,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.ui.activity.MainActivity
+import com.luckyzyx.luckytool.ui.compose.components.ActionListDialog
+import com.luckyzyx.luckytool.ui.compose.components.ChoiceItem
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.PrefIcon
@@ -91,7 +90,6 @@ import com.luckyzyx.luckytool.utils.recordedTarget
 import com.luckyzyx.luckytool.utils.showToast
 import org.json.JSONArray
 import org.json.JSONObject
-import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import kotlin.system.exitProcess
@@ -337,90 +335,37 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
     }
 
     if (showDonateList) {
-        // 点击回调（clickable / onClick）内没有 Composer，取一次给 lambda 捕获
+        // 回调 lambda 内没有 Composer，取一次给 lambda 捕获
         val donationListTitle = stringResource(R.string.donation_list)
-        val donateList = arrayListOf(
-            stringResource(R.string.qq),
-            stringResource(R.string.wechat),
-            stringResource(R.string.alipay),
-            donationListTitle,
+        // key 用渠道标识而不是下标：中文环境没有 patreon / paypal，「捐赠列表」的下标会跟着变
+        val donateItems = arrayListOf(
+            ChoiceItem(key = "qq", title = stringResource(R.string.qq)),
+            ChoiceItem(key = "wechat", title = stringResource(R.string.wechat)),
+            ChoiceItem(key = "alipay", title = stringResource(R.string.alipay)),
         )
         if (!zh) {
-            donateList.add(3, stringResource(R.string.patreon))
-            donateList.add(4, stringResource(R.string.paypal))
+            donateItems.add(ChoiceItem(key = "patreon", title = stringResource(R.string.patreon)))
+            donateItems.add(ChoiceItem(key = "paypal", title = stringResource(R.string.paypal)))
         }
-        when (LocalUiMode.current) {
-            UiMode.Miuix -> OverlayDialog(
-                show = true,
-                onDismissRequest = { showDonateList = false },
-            ) {
-                Column {
-                    donateList.forEachIndexed { index, label ->
-                        BasicComponent(
-                            title = label,
-                            insideMargin = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
-                            onClick = {
-                                showDonateList = false
-                                when (index) {
-                                    0, 1, 2 -> showQrType = index
-                                    3 -> if (zh) {
-                                        activity.requestFunctionNavigation(
-                                            "donate",
-                                            donationListTitle,
-                                        )
-                                    } else {
-                                        context.openUrl("https://www.patreon.com/LuckyTool")
-                                    }
-
-                                    4 -> context.openUrl("https://paypal.me/luckyzyx")
-                                    5 -> activity.requestFunctionNavigation(
-                                        "donate",
-                                        donationListTitle,
-                                    )
-                                }
-                            },
-                        )
-                    }
+        donateItems.add(ChoiceItem(key = "donation_list", title = donationListTitle))
+        ActionListDialog(
+            // 原来没有标题，ActionListDialog 的 title 必填，用这个入口自己的文案补上
+            title = stringResource(R.string.donate),
+            items = donateItems,
+            onDismiss = { showDonateList = false },
+            onSelect = { item ->
+                // 先关再执行动作，保持原实现里 showDonateList = false 在路由之前的顺序
+                showDonateList = false
+                when (item.key) {
+                    "qq" -> showQrType = 0
+                    "wechat" -> showQrType = 1
+                    "alipay" -> showQrType = 2
+                    "patreon" -> context.openUrl("https://www.patreon.com/LuckyTool")
+                    "paypal" -> context.openUrl("https://paypal.me/luckyzyx")
+                    else -> activity.requestFunctionNavigation("donate", donationListTitle)
                 }
-            }
-
-            UiMode.Material -> AlertDialog(
-                onDismissRequest = { showDonateList = false },
-                text = {
-                    Column {
-                        donateList.forEachIndexed { index, label ->
-                            Text(
-                                label,
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        showDonateList = false
-                                        when (index) {
-                                            0, 1, 2 -> showQrType = index
-                                            3 -> if (zh) {
-                                                activity.requestFunctionNavigation(
-                                                    "donate",
-                                                    donationListTitle,
-                                                )
-                                            } else {
-                                                context.openUrl("https://www.patreon.com/LuckyTool")
-                                            }
-
-                                            4 -> context.openUrl("https://paypal.me/luckyzyx")
-                                            5 -> activity.requestFunctionNavigation(
-                                                "donate",
-                                                donationListTitle,
-                                            )
-                                        }
-                                    }
-                                    .padding(horizontal = 24.dp, vertical = 14.dp),
-                            )
-                        }
-                    }
-                },
-                confirmButton = {},
-            )
-        }
+            },
+        )
     }
 
     if (showQrType >= 0) {
@@ -482,78 +427,37 @@ fun SettingPage(activity: MainActivity, onOpenTheme: () -> Unit = {}) {
     }
 
     if (showFeedbackDialog) {
-        val items = arrayOf(
-            stringResource(R.string.coolmarket),
-            stringResource(R.string.module_doc),
-            stringResource(R.string.qq_chat_group),
-            stringResource(R.string.qq_channel),
-            stringResource(R.string.telegram_channel),
-            stringResource(R.string.lsposed_repo),
+        val feedbackItems = listOf(
+            ChoiceItem(key = "coolmarket", title = stringResource(R.string.coolmarket)),
+            ChoiceItem(key = "module_doc", title = stringResource(R.string.module_doc)),
+            ChoiceItem(key = "qq_chat_group", title = stringResource(R.string.qq_chat_group)),
+            ChoiceItem(key = "qq_channel", title = stringResource(R.string.qq_channel)),
+            ChoiceItem(key = "telegram_channel", title = stringResource(R.string.telegram_channel)),
+            ChoiceItem(key = "lsposed_repo", title = stringResource(R.string.lsposed_repo)),
         )
-        when (LocalUiMode.current) {
-            UiMode.Miuix -> OverlayDialog(
-                show = true,
-                onDismissRequest = { showFeedbackDialog = false },
-            ) {
-                Column {
-                    items.forEachIndexed { index, label ->
-                        BasicComponent(
-                            title = label,
-                            insideMargin = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
-                            onClick = {
-                                showFeedbackDialog = false
-                                when (index) {
-                                    0 -> context.openUrl("coolmarket://u/1930284")
-                                    1 -> context.openUrl("https://luckyzyx.gitlab.io/LuckyTool_Doc")
-                                    2 -> context.openUrl(
-                                        "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=3fYu6lT8IHrBPKAfFTNSHbd8wcWX0oGs&authKey=dyIpjTWH8KWHMU3v6gI05T0bAzr6XigJKasMiCwmco1%2F8BRtPCN%2B1zOGgXyK7IUB&noverify=0&group_code=663884734"
-                                    )
+        ActionListDialog(
+            // 原来没有标题，ActionListDialog 的 title 必填，用这个入口自己的文案补上
+            title = stringResource(R.string.feedback_download),
+            items = feedbackItems,
+            onDismiss = { showFeedbackDialog = false },
+            onSelect = { item ->
+                // 先关再打开链接，保持原实现里 showFeedbackDialog = false 在路由之前的顺序
+                showFeedbackDialog = false
+                when (item.key) {
+                    "coolmarket" -> context.openUrl("coolmarket://u/1930284")
+                    "module_doc" -> context.openUrl("https://luckyzyx.gitlab.io/LuckyTool_Doc")
+                    "qq_chat_group" -> context.openUrl(
+                        "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=3fYu6lT8IHrBPKAfFTNSHbd8wcWX0oGs&authKey=dyIpjTWH8KWHMU3v6gI05T0bAzr6XigJKasMiCwmco1%2F8BRtPCN%2B1zOGgXyK7IUB&noverify=0&group_code=663884734"
+                    )
 
-                                    3 -> context.openUrl("https://pd.qq.com/s/ahjm4zyxb")
-                                    4 -> context.openUrl("https://t.me/LuckyTool")
-                                    5 -> context.openUrl(
-                                        "https://modules.lsposed.org/module/com.luckyzyx.luckytool"
-                                    )
-                                }
-                            },
-                        )
-                    }
+                    "qq_channel" -> context.openUrl("https://pd.qq.com/s/ahjm4zyxb")
+                    "telegram_channel" -> context.openUrl("https://t.me/LuckyTool")
+                    "lsposed_repo" -> context.openUrl(
+                        "https://modules.lsposed.org/module/com.luckyzyx.luckytool"
+                    )
                 }
-            }
-
-            UiMode.Material -> AlertDialog(
-                onDismissRequest = { showFeedbackDialog = false },
-                text = {
-                    Column {
-                        items.forEachIndexed { index, label ->
-                            Text(
-                                label,
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        showFeedbackDialog = false
-                                        when (index) {
-                                            0 -> context.openUrl("coolmarket://u/1930284")
-                                            1 -> context.openUrl("https://luckyzyx.gitlab.io/LuckyTool_Doc")
-                                            2 -> context.openUrl(
-                                                "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=3fYu6lT8IHrBPKAfFTNSHbd8wcWX0oGs&authKey=dyIpjTWH8KWHMU3v6gI05T0bAzr6XigJKasMiCwmco1%2F8BRtPCN%2B1zOGgXyK7IUB&noverify=0&group_code=663884734"
-                                            )
-
-                                            3 -> context.openUrl("https://pd.qq.com/s/ahjm4zyxb")
-                                            4 -> context.openUrl("https://t.me/LuckyTool")
-                                            5 -> context.openUrl(
-                                                "https://modules.lsposed.org/module/com.luckyzyx.luckytool"
-                                            )
-                                        }
-                                    }
-                                    .padding(horizontal = 24.dp, vertical = 14.dp),
-                            )
-                        }
-                    }
-                },
-                confirmButton = {},
-            )
-        }
+            },
+        )
     }
 
     // 备份前确认：展示当前四个 prefs 各自的落点（remote 依赖框架 service 可用）
