@@ -966,7 +966,6 @@
     <string name="adb_port">ADB порт</string>
     <string name="enable_remote_adb_debugging">Увімкнути віддалене налагодження ADB</string>
     <string name="adb_debug_port_cannot_null">Порт налагодження ADB не може бути порожнім</string>
-    <string name="adb_tv_tip">Утримуйте для копіювання</string>
     <!--LOG Fragment-->
     <string name="log_save_success">Лог збережено успішно!</string>
     <string name="log_save_failed">Не вдалося зберегти лог!</string>

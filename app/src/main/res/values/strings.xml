@@ -1303,7 +1303,6 @@
     <string name="adb_port">ADB Port</string>
     <string name="enable_remote_adb_debugging">Enable remote ADB debugging</string>
     <string name="adb_debug_port_cannot_null">ADB debug port cannot be null</string>
-    <string name="adb_tv_tip">Long press to copy</string>
     <string name="adb_port_out_of_range">Port must be between 1 and 65535</string>
     <string name="adb_debug_operation_failed">Operation failed. Please try again.</string>
     <string name="copy">Copy</string>

@@ -1159,7 +1159,6 @@
     <string name="adb_port">ADB Bağlantı Noktası (Portu)</string>
     <string name="enable_remote_adb_debugging">Uzaktan (Kablosuz-Remote vb.)  hata ayıklamayı / bağlantıyı etkinleştir</string>
     <string name="adb_debug_port_cannot_null">Port (Bağlantı Noktası) Boş Bırakılamaz , Geçersiz Sayılmaz !...</string>
-    <string name="adb_tv_tip">Kopyalamak için Uzun Basın.</string>
     
     <!--LOG Fragment-->
     <string name="log_save_success">Sistem / Modül kayıt Verisi (Günlük Verileri - LOG) Başarıyla Kaydedildi / Alındı. !</string>

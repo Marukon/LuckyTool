@@ -965,7 +965,6 @@
     <string name="adb_port">Porta ADB</string>
     <string name="enable_remote_adb_debugging">Abilita debug ADB remoto</string>
     <string name="adb_debug_port_cannot_null">La porta di debug ADB non può essere nulla</string>
-    <string name="adb_tv_tip">Premi a lungo per copiare</string>
     <!--LOG Fragment-->
     <string name="log_save_success">LOG Salvato Con Successo!</string>
     <string name="log_save_failed">LOG Salvato Fallito!</string>

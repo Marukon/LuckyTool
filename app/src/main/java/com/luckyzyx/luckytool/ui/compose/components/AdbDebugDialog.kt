@@ -267,8 +267,6 @@ private fun AdbDebugContent(state: AdbDebugDialogState, isMiuix: Boolean) {
                 isMiuix = isMiuix,
                 onCopy = { context.copyStr(command) },
             )
-            Spacer(Modifier.height(6.dp))
-            AdbHintText(stringResource(R.string.adb_tv_tip), isMiuix)
         }
     }
 }
@@ -422,25 +420,6 @@ private fun AdbErrorText(error: AdbDebugError, isMiuix: Boolean) {
             text = text,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-@Composable
-private fun AdbHintText(text: String, isMiuix: Boolean) {
-    if (isMiuix) {
-        MiuixText(
-            text = text,
-            style = MiuixTheme.textStyles.footnote1,
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    } else {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(),
         )
     }

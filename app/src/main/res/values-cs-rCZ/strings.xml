@@ -966,7 +966,6 @@
     <string name="adb_port">ADB port</string>
     <string name="enable_remote_adb_debugging">Povolit vzdálené ladění ADB</string>
     <string name="adb_debug_port_cannot_null">ADB debug port nemůže být prázdný a null</string>
-    <string name="adb_tv_tip">Dlouhým stisknutím zkopírujete</string>
     <!--LOG Fragment-->
     <string name="log_save_success">Protokol úspěšně uložen!</string>
     <string name="log_save_failed">Uložení protokolu se nezdařilo!</string>

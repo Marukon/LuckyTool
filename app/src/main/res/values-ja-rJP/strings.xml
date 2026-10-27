@@ -965,7 +965,6 @@
     <string name="adb_port">ADBのポート</string>
     <string name="enable_remote_adb_debugging">リモートADBデバッグを有効化</string>
     <string name="adb_debug_port_cannot_null">ADBデバッグポートをnullにすることはできません</string>
-    <string name="adb_tv_tip">長押しでコピー</string>
     <!--LOG Fragment-->
     <string name="log_save_success">ログの保存に成功しました!</string>
     <string name="log_save_failed">ログの保存に失敗しました!</string>
