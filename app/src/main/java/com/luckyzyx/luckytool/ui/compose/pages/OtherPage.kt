@@ -6,9 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.collection.ArrayMap
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,7 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.AddToHomeScreen
@@ -37,9 +34,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,7 +43,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
@@ -57,17 +51,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.highcapable.kavaref.extension.classOf
-import com.luckyzyx.luckytool.IAdbDebugController
 import com.luckyzyx.luckytool.ITileServiceController
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.service.AdbService
 import com.luckyzyx.luckytool.service.TilesService
 import com.luckyzyx.luckytool.ui.activity.MainActivity
+import com.luckyzyx.luckytool.ui.compose.components.AdbDebugDialog
 import com.luckyzyx.luckytool.ui.compose.components.AppPickerDialog
 import com.luckyzyx.luckytool.ui.compose.components.LocalScopeTopInset
 import com.luckyzyx.luckytool.ui.compose.components.MainPageActivationEffect
@@ -75,7 +67,6 @@ import com.luckyzyx.luckytool.ui.compose.components.OtherTopBarActions
 import com.luckyzyx.luckytool.ui.compose.components.PrefIcon
 import com.luckyzyx.luckytool.ui.compose.components.ScopeScreen
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialPageScaffold
-import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixDialogScrollBody
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
 import com.luckyzyx.luckytool.ui.theme.UiMode
 import com.luckyzyx.luckytool.utils.A13
@@ -87,22 +78,15 @@ import com.luckyzyx.luckytool.utils.RestartMenuUtils
 import com.luckyzyx.luckytool.utils.SDK
 import com.luckyzyx.luckytool.utils.SettingsPrefs
 import com.luckyzyx.luckytool.utils.ShortcutUtils
-import com.luckyzyx.luckytool.utils.copyStr
 import com.luckyzyx.luckytool.utils.showToast
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.CheckboxLocation
 import top.yukonga.miuix.kmp.preference.CheckboxPreference
 import top.yukonga.miuix.kmp.preference.RadioButtonPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
-import top.yukonga.miuix.kmp.basic.TextField as MiuixTextField
 
 /**
  * 其他页（旧 OtherFragment 的 Compose 等价实现）。
@@ -114,7 +98,6 @@ fun OtherPage(activity: MainActivity, isCurrentPage: Boolean = true) {
     val context = LocalContext.current
     val settings = remember { PrefState.of(context, SettingsPrefs) }
     val otherPrefs = remember { PrefState.of(context, OtherPrefs) }
-    val scope = rememberCoroutineScope()
     // 使用存活控制器作为恢复种子；分页保留本页状态，切换标签不重新加载。
     var tileController by remember { mutableStateOf(TilesService.getCachedController()) }
     var adbController by remember { mutableStateOf(AdbService.getCachedController()) }
@@ -286,7 +269,7 @@ fun OtherPage(activity: MainActivity, isCurrentPage: Boolean = true) {
         TouchSamplingRateDialog(settings, tileController) { showTouchDialog = false }
     }
     if (showAdbDialog && adbController != null) {
-        AdbDebugDialog(context, otherPrefs, adbController, scope) { showAdbDialog = false }
+        AdbDebugDialog(otherPrefs, adbController) { showAdbDialog = false }
     }
 }
 
@@ -608,225 +591,6 @@ private fun TouchSamplingRateDialog(
             },
             dismissButton = {
                 TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
-            },
-        )
-    }
-}
-
-/** 远程 ADB 调试（旧 initAdbDebugView，布局与状态机保持原样） */
-@OptIn(ExperimentalFoundationApi::class)
-@SuppressLint("SetTextI18n")
-@Composable
-private fun AdbDebugDialog(
-    context: Context,
-    otherPrefs: PrefState,
-    controller: IAdbDebugController?,
-    scope: CoroutineScope,
-    onDismiss: () -> Unit,
-) {
-    val adb = controller ?: return
-    val getPort = adb.adbPort
-    var getIP by remember { mutableStateOf(adb.wifiIP ?: "IP") }
-
-    var portText by remember {
-        mutableStateOf(
-            (if (getPort == 0 || getPort == -1) otherPrefs.getString("adb_port", "6666")
-            else getPort.toString()) ?: "6666"
-        )
-    }
-    var adbTvText by remember {
-        mutableStateOf(if (getPort != 0 && getPort != -1) "adb connect $getIP:$getPort" else "")
-    }
-    var busy by remember { mutableStateOf(false) }
-    var adbEnabled by remember { mutableStateOf(getPort != 0 && getPort != -1) }
-    // 开关回调与协程内没有 Composer，端口校验提示先在这里取一次
-    val portCannotNullText = stringResource(R.string.adb_debug_port_cannot_null)
-
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> OverlayDialog(
-            show = true,
-            onDismissRequest = onDismiss,
-        ) {
-            MiuixDialogScrollBody {
-                SwitchPreference(
-                    checked = adbEnabled,
-                    onCheckedChange = { checked ->
-                        if (checked) {
-                            val portStr = portText
-                            if (portStr.isBlank()) {
-                                adbTvText = portCannotNullText
-                            } else {
-                                scope.launch {
-                                    val port = portStr.toIntOrNull()
-                                    if (port == null) {
-                                        adbTvText =
-                                            portCannotNullText
-                                        return@launch
-                                    }
-                                    busy = true
-                                    runCatching {
-                                        withContext(Dispatchers.IO) {
-                                            adb.adbPort = port
-                                            adb.restartAdb()
-                                        }
-                                        getIP = adb.wifiIP ?: "IP"
-                                        otherPrefs.set("adb_port", port.toString())
-                                    }
-                                    adbEnabled = true
-                                    adbTvText = "adb connect $getIP:$portStr"
-                                    busy = false
-                                }
-                            }
-                        } else {
-                            scope.launch {
-                                busy = true
-                                runCatching {
-                                    withContext(Dispatchers.IO) {
-                                        adb.adbPort = -1
-                                        adb.restartAdb()
-                                        adb.adbPort = 0
-                                    }
-                                }
-                                adbEnabled = false
-                                adbTvText = ""
-                                busy = false
-                            }
-                        }
-                    },
-                    title = stringResource(R.string.enable_remote_adb_debugging),
-                    enabled = !busy,
-                )
-                MiuixTextField(
-                    value = portText,
-                    onValueChange = { portText = it },
-                    enabled = !adbEnabled && !busy,
-                    label = stringResource(R.string.adb_port),
-                    useLabelAsPlaceholder = true,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-                if (adbTvText.isNotBlank()) {
-                    MiuixText(
-                        text = adbTvText,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onLongClick = { context.copyStr(adbTvText) },
-                                onClick = {},
-                            )
-                            .padding(vertical = 12.dp),
-                    )
-                    MiuixText(
-                        text = stringResource(R.string.adb_tv_tip),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onLongClick = { context.copyStr(adbTvText) },
-                                onClick = {},
-                            )
-                            .padding(bottom = 20.dp),
-                    )
-                }
-            }
-        }
-
-        UiMode.Material -> AlertDialog(
-            onDismissRequest = onDismiss,
-            confirmButton = {},
-            text = {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            stringResource(R.string.enable_remote_adb_debugging),
-                            modifier = Modifier.weight(1f),
-                        )
-                        Switch(
-                            checked = adbEnabled,
-                            enabled = !busy,
-                            onCheckedChange = { checked ->
-                                if (checked) {
-                                    val portStr = portText
-                                    if (portStr.isBlank()) {
-                                        adbTvText =
-                                            portCannotNullText
-                                    } else {
-                                        scope.launch {
-                                            val port = portStr.toIntOrNull()
-                                            if (port == null) {
-                                                adbTvText =
-                                                    portCannotNullText
-                                                return@launch
-                                            }
-                                            busy = true
-                                            runCatching {
-                                                withContext(Dispatchers.IO) {
-                                                    adb.adbPort = port
-                                                    adb.restartAdb()
-                                                }
-                                                getIP = adb.wifiIP ?: "IP"
-                                                otherPrefs.set("adb_port", port.toString())
-                                            }
-                                            adbEnabled = true
-                                            adbTvText = "adb connect $getIP:$portStr"
-                                            busy = false
-                                        }
-                                    }
-                                } else {
-                                    scope.launch {
-                                        busy = true
-                                        runCatching {
-                                            withContext(Dispatchers.IO) {
-                                                adb.adbPort = -1
-                                                adb.restartAdb()
-                                                adb.adbPort = 0
-                                            }
-                                        }
-                                        adbEnabled = false
-                                        adbTvText = ""
-                                        busy = false
-                                    }
-                                }
-                            },
-                        )
-                    }
-                    OutlinedTextField(
-                        value = portText,
-                        onValueChange = { portText = it },
-                        enabled = !adbEnabled && !busy,
-                        label = { Text(stringResource(R.string.adb_port)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    )
-                    if (adbTvText.isNotBlank()) {
-                        Text(
-                            text = adbTvText,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .combinedClickable(
-                                    onLongClick = { context.copyStr(adbTvText) },
-                                    onClick = {},
-                                )
-                                .padding(vertical = 12.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.adb_tv_tip),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .combinedClickable(
-                                    onLongClick = { context.copyStr(adbTvText) },
-                                    onClick = {},
-                                )
-                                .padding(bottom = 20.dp),
-                        )
-                    }
-                }
             },
         )
     }

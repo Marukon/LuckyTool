@@ -1285,6 +1285,9 @@
     <string name="enable_remote_adb_debugging">開啟遠端ADB除錯</string>
     <string name="adb_debug_port_cannot_null">ADB除錯埠不可為空</string>
     <string name="adb_tv_tip">長按複製</string>
+    <string name="adb_port_out_of_range">埠需在 1 - 65535 之間</string>
+    <string name="adb_debug_operation_failed">操作失敗，請重試</string>
+    <string name="copy">複製</string>
 
     <!--LOG Fragment-->
     <string name="log_save_success">LOG 儲存成功！</string>
