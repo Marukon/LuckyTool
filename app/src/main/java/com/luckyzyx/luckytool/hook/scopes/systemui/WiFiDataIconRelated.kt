@@ -2,6 +2,7 @@ package com.luckyzyx.luckytool.hook.scopes.systemui
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.drawable.Drawable
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -20,7 +21,6 @@ import com.highcapable.kavaref.extension.classOf
 import com.highcapable.yukihookapi.extension.kavaref.hook
 import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.factory.injectModuleResources
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.hook.utils.FlowUtils
 import com.luckyzyx.luckytool.hook.utils.sysui.AbsSettingsValueProxyUtils
@@ -48,7 +48,8 @@ object WiFiDataIconRelated : YukiBaseHooker() {
         @SuppressLint("MissingPermission", "DiscouragedApi")
         override fun onHook() {
             val removeInout = preferences(ModulePrefs).getBoolean("remove_wifi_data_inout", false)
-            val wifiStandard = preferences(ModulePrefs).getBoolean("force_display_wifi_standard", false)
+            val wifiStandard =
+                preferences(ModulePrefs).getBoolean("force_display_wifi_standard", false)
 
             val mNetworkRequest = NetworkRequest.Builder().apply {
                 addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
@@ -75,20 +76,19 @@ object WiFiDataIconRelated : YukiBaseHooker() {
                                             it as? WifiInfo
                                         } ?: return
                                         val isPrimary = info.asResolver().firstMethod {
-                                            name = "isPrimary";emptyParameters()
+                                            name = "isPrimary"; emptyParameters()
                                         }.invoke<Boolean>() ?: false
                                         if (!isPrimary) return
                                         wifiInfo = info
 
                                         val drawable = getSignalDrawable(
                                             hostClassLoader!!, context, wifiInfo!!.wifiStandard
-                                        )
-                                        if (drawable < 0) return
+                                        ) ?: return
                                         view.findViewById<ImageView>(
                                             context.resources.getIdentifier(
                                                 "wifi_left", "id", this@WiFiDataIcon.packageName
                                             )
-                                        )?.setImageResource(drawable)
+                                        )?.setImageDrawable(drawable)
                                     }
                                 }
                                 manager.registerNetworkCallback(mNetworkRequest, callback, handler)
@@ -129,9 +129,9 @@ object WiFiDataIconRelated : YukiBaseHooker() {
                             val context = firstField { type = Context::class }.of(instance)
                                 .get<Context>() ?: return@after
                             if (wifiInfo == null) return@after
-                            val drawable =
-                                getSignalDrawable(hostClassLoader!!, context, wifiInfo!!.wifiStandard)
-                            if (drawable < 0) return@after
+                            val drawable = getSignalDrawable(
+                                hostClassLoader!!, context, wifiInfo!!.wifiStandard
+                            ) ?: return@after
                             result = FlowUtils(hostClassLoader!!).let {
                                 val mutableStateFlow = it.MutableStateFlow(drawable)
                                     ?: return@after
@@ -142,28 +142,42 @@ object WiFiDataIconRelated : YukiBaseHooker() {
                 }
         }
 
-        fun getSignalDrawable(classLoader: ClassLoader?, context: Context, standard: Int): Int {
-            context.injectModuleResources()
+        @SuppressLint("UseCompatLoadingForDrawables")
+        fun getSignalDrawable(
+            classLoader: ClassLoader?, context: Context, standard: Int
+        ): Drawable? {
             val isDual = WifiUtils(classLoader).isDualWifiConnected(context)
             val isAp = WifiUtils(classLoader).isPassPointAp(context)
-            if (isDual || isAp) return -1
+            if (isDual || isAp) return null
 
             val technicalEnable = AbsSettingsValueProxyUtils(hostClassLoader!!)
                 .getGlobalIntValue(context, "wifi_use_technical_standard_icons_switch_on", 0)
-            if (technicalEnable != 1) return -1
+            if (technicalEnable != 1) return null
 
             return when (standard) {
 //                ScanResult.WIFI_STANDARD_UNKNOWN -> 0
 //                ScanResult.WIFI_STANDARD_LEGACY -> 0
-                ScanResult.WIFI_STANDARD_11N -> R.drawable.stat_signal_wifi_4
+                ScanResult.WIFI_STANDARD_11N -> module.resources.getDrawable(
+                    R.drawable.stat_signal_wifi_4,
+                    null
+                )
 
-                ScanResult.WIFI_STANDARD_11AC -> R.drawable.stat_signal_wifi_5
+                ScanResult.WIFI_STANDARD_11AC -> module.resources.getDrawable(
+                    R.drawable.stat_signal_wifi_5,
+                    null
+                )
 
-                ScanResult.WIFI_STANDARD_11AX -> R.drawable.stat_signal_wifi_6
+                ScanResult.WIFI_STANDARD_11AX -> module.resources.getDrawable(
+                    R.drawable.stat_signal_wifi_6,
+                    null
+                )
 //                ScanResult.WIFI_STANDARD_11AD -> 0
-                ScanResult.WIFI_STANDARD_11BE -> R.drawable.stat_signal_wifi_7
+                ScanResult.WIFI_STANDARD_11BE -> module.resources.getDrawable(
+                    R.drawable.stat_signal_wifi_7,
+                    null
+                )
 
-                else -> -1
+                else -> null
             }
         }
 

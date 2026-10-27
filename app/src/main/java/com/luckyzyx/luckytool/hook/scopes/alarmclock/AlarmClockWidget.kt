@@ -15,7 +15,6 @@ import com.highcapable.yukihookapi.extension.kavaref.hook
 import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.factory.injectModuleResources
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.safeOfNull
@@ -66,7 +65,6 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                             val context = (field { type = Context::class }.firstOrNull()
                                 ?: field { type = Context::class; superclass() }.firstOrNull())
                                 ?.of(instance)?.get<Context>() ?: return@after
-                            context.injectModuleResources()
                             val res = result<RemoteViews>() ?: return@after
                             val layoutName = safeOfNull {
                                 context.resources.getResourceEntryName(res.layoutId)

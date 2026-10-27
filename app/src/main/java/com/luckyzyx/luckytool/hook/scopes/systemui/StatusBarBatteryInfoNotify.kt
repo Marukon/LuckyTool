@@ -12,7 +12,6 @@ import com.highcapable.betterandroid.ui.component.notification.factory.Notificat
 import com.highcapable.betterandroid.ui.component.notification.factory.NotificationChannel
 import com.highcapable.betterandroid.ui.component.notification.type.NotificationImportance
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
-import com.highcapable.yukihookapi.hook.factory.injectModuleResources
 import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.BuildConfig
 import com.luckyzyx.luckytool.R
@@ -142,40 +141,34 @@ object StatusBarBatteryInfoNotify : YukiBaseHooker() {
         }
 
         registerAppLifecycle {
-            onCreate {
-                injectModuleResources()
-            }
             //BatteryService
             registerReceiver(Intent.ACTION_BATTERY_CHANGED) { context: Context, _: Intent ->
-                context.injectModuleResources()
-
-                initInfo(context)
+                initInfo()
                 initSend(context)
             }
             //OplusBatteryService
             registerReceiver("android.intent.action.ADDITIONAL_BATTERY_CHANGED") { context: Context, intent: Intent ->
-                context.injectModuleResources()
                 chargerTechnology = intent.getIntExtra("chargertechnology", 0)
                 chargeWattage = intent.getIntExtra("chargewattage", 0)
                 ppsMode = intent.getIntExtra("pps_chg_mode", 0)
                 chargerWattageCpa = intent.getIntExtra("cpa_charge_wattage", 0)
 
-                initInfo(context)
+                initInfo()
                 initSend(context)
             }
         }
     }
 
-    private fun initInfo(context: Context) {
+    private fun initInfo() {
         try {
             chargeInfo = getChargeInfo()
             statusValue = chargeInfo.getIntProperty("battery_status")
             status = when (statusValue) {
-                2 -> safeOf("Charging") { context.getString(R.string.battery_status_charging) }
-                3 -> safeOf("Discharging") { context.getString(R.string.battery_status_discharging) }
-                4 -> safeOf("Not Charging") { context.getString(R.string.battery_status_not_charging) }
-                5 -> safeOf("Full") { context.getString(R.string.battery_status_full) }
-                else -> safeOf("Unknown") { context.getString(R.string.battery_status_unknown) }
+                2 -> safeOf("Charging") { module.resources.getString(R.string.battery_status_charging) }
+                3 -> safeOf("Discharging") { module.resources.getString(R.string.battery_status_discharging) }
+                4 -> safeOf("Not Charging") { module.resources.getString(R.string.battery_status_not_charging) }
+                5 -> safeOf("Full") { module.resources.getString(R.string.battery_status_full) }
+                else -> safeOf("Unknown") { module.resources.getString(R.string.battery_status_unknown) }
             }
             isCharging = statusValue == 2 || statusValue == 5
             plugged = when (getPlugType(chargeInfo)) {
@@ -275,14 +268,15 @@ object StatusBarBatteryInfoNotify : YukiBaseHooker() {
                 else -> R.drawable.round_battery_unknown_24
             }
         }
-        val tempStr = safeOf("Temp") { context.getString(R.string.battery_temperature) }
-        val volStr = safeOf("Vol") { context.getString(R.string.battery_voltage) }
-        val curStr = safeOf("Cur") { context.getString(R.string.battery_electric_current) }
-        val hltStr = safeOf("Cur") { context.getString(R.string.battery_health) }
-        val typeStr = safeOf("Type") { context.getString(R.string.battery_charger_type) }
-        val pwrStr = safeOf("Pwr") { context.getString(R.string.battery_power) }
-        val techStr = safeOf("Tech") { context.getString(R.string.battery_technology) }
-        val updateTimeStr = safeOf("UpdateTime") { context.getString(R.string.battery_update_time) }
+        val tempStr = safeOf("Temp") { module.resources.getString(R.string.battery_temperature) }
+        val volStr = safeOf("Vol") { module.resources.getString(R.string.battery_voltage) }
+        val curStr = safeOf("Cur") { module.resources.getString(R.string.battery_electric_current) }
+        val hltStr = safeOf("Cur") { module.resources.getString(R.string.battery_health) }
+        val typeStr = safeOf("Type") { module.resources.getString(R.string.battery_charger_type) }
+        val pwrStr = safeOf("Pwr") { module.resources.getString(R.string.battery_power) }
+        val techStr = safeOf("Tech") { module.resources.getString(R.string.battery_technology) }
+        val updateTimeStr =
+            safeOf("UpdateTime") { module.resources.getString(R.string.battery_update_time) }
 
         val power = abs(powerCalc).formatDecimals(2) + "W"
         val wattage = if (chargeWattage == 0) {
