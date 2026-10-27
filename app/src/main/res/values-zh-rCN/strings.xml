@@ -749,6 +749,8 @@
     <string name="confirm_to_delete_this_configuration">确认删除此条配置？\n%1$s</string>
     <string name="edit_memc_configuration_tips">了解更多参数，请查询\n%1$s</string>
     <string name="no_memc_data">无Memc数据</string>
+    <string name="memc_version_select_title">选择版本</string>
+    <string name="memc_activity_picker_title">选择 Activity</string>
     <string name="video_frame_insertion_support_2K120">视频插帧支持 2K/120 帧</string>
     <string name="video_frame_insertion_support_2K120_summary">若你的设备不支持 MEMC，请勿使用此功能</string>
     <string name="enable_screen_color_temperature_rgb_ball">启用屏幕 RGB 色温球</string>
@@ -1113,6 +1115,8 @@
     <!--Shortcut-->
     <string name="set_module_shortcuts">设置模块快捷方式</string>
     <string name="set_module_shortcuts_summary">长按模块图标即可显示已启用的快捷方式</string>
+    <string name="pin_shortcut">固定快捷方式</string>
+    <string name="choice_dialog_empty">暂无可选项</string>
     <!--TouchPanel-->
     <string name="set_touch_sampling_rate_tile_level">设置触摸采样率磁贴档位</string>
     <string name="set_touch_sampling_rate_tile_level_summary">自行测试各个档位是否可以正常使用\n使用游戏助手打开游戏时，会覆盖当前采样率</string>
@@ -1157,6 +1161,7 @@
     <string name="appinfo_filter">过滤器</string>
     <string name="appinfo_reverse">反转</string>
     <string name="appinfo_search_hint">搜索应用名或包名</string>
+    <string name="activity_search_hint">搜索 Activity</string>
     <string name="appinfo_app_name">应用名称</string>
     <string name="appinfo_package_name">应用包名</string>
     <string name="appinfo_app_size">应用大小</string>

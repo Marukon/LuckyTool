@@ -841,6 +841,8 @@
     <string name="confirm_to_delete_this_configuration">Confirm to delete this configuration?\n%1$s</string>
     <string name="edit_memc_configuration_tips">For more parameters, please query\n%1$s</string>
     <string name="no_memc_data">No Memc Data</string>
+    <string name="memc_version_select_title">Select version</string>
+    <string name="memc_activity_picker_title">Select activity</string>
     
     <string name="video_frame_insertion_support_2K120">Video frame insertion supports 2K 120</string>
     <string name="video_frame_insertion_support_2K120_summary">If your device does not support MEMC, please do not use this function</string>
@@ -1288,6 +1290,8 @@
     <!--Shortcut-->
     <string name="set_module_shortcuts">Set module shortcuts</string>
     <string name="set_module_shortcuts_summary">Long press on module icon to show enabled shortcuts</string>
+    <string name="pin_shortcut">Pin shortcut</string>
+    <string name="choice_dialog_empty">No options available</string>
     
     <!--TouchPanel-->
     <string name="set_touch_sampling_rate_tile_level">Set the touch sampling rate tile level</string>
@@ -1339,6 +1343,7 @@
     <string name="appinfo_filter">Filter</string>
     <string name="appinfo_reverse">Reverse</string>
     <string name="appinfo_search_hint">Search App Name Or Package Name</string>
+    <string name="activity_search_hint">Search Activity</string>
     
     <string name="appinfo_app_name">App Name</string>
     <string name="appinfo_package_name">Package Name</string>
