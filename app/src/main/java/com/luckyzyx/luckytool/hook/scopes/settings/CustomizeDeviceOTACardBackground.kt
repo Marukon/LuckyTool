@@ -30,9 +30,9 @@ import com.luckyzyx.luckytool.utils.ModulePrefs
 import com.luckyzyx.luckytool.utils.dp
 import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.safeOfNull
+import org.lsposed.lsparanoid.Obfuscate
 import java.io.File
 import java.lang.ref.WeakReference
-import org.lsposed.lsparanoid.Obfuscate
 
 @Obfuscate
 object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
@@ -68,7 +68,7 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
         //这里只取路径原文，文件是否还在交给 hasPlayableVideo() 在使用时现查，
         //否则加载之后文件被删，内存里的死路径还是会交给官方
         videoPath = if (videoEnabled) {
-            preferences(ModulePrefs).getString("customize_device_ota_card_video_path", "") ?: ""
+            preferences(ModulePrefs).getString("customize_device_ota_card_video_path", "")
         } else ""
         val hideText = preferences(ModulePrefs).getBoolean("hide_ota_card_top_text", false)
         val applySharePage =
