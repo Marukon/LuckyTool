@@ -54,6 +54,9 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
     //视频播完的收尾要在监听器回调里调官方方法，回调里拿不到 preference 实例，bind 时记下来
     private var topPreference: WeakReference<Any>? = null
 
+    //文件可能在 hook 加载之后被删掉，每次要用路径前都现查一遍
+    private fun hasPlayableVideo(): Boolean = videoPath.isNotEmpty() && File(videoPath).exists()
+
     @SuppressLint("DiscouragedApi")
     override fun onHook() {
         val osCode = getOSVersionCode
@@ -62,13 +65,11 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
         //路径只是「上次选过什么」，是否生效由视频开关决定：关着就当没设过，否则关开关后仍会播旧视频
         val videoEnabled = preferences(ModulePrefs)
             .getBoolean("customize_device_ota_card_video", false)
-        //开关开着但文件已经不在了（缓存被清）也当没设过，否则官方拿着死路径 prepare 会黑屏
+        //这里只取路径原文，文件是否还在交给 hasPlayableVideo() 在使用时现查，
+        //否则加载之后文件被删，内存里的死路径还是会交给官方
         videoPath = if (videoEnabled) {
-            preferences(ModulePrefs).getString("customize_device_ota_card_video_path", "")
-                ?.takeIf { it.isNotEmpty() && File(it).exists() } ?: ""
+            preferences(ModulePrefs).getString("customize_device_ota_card_video_path", "") ?: ""
         } else ""
-        //开关开着却没有可用的自定义视频：官方会退回自己的 ColorOS 视频，这里连它一起挡掉，只留背景图
-        val hideOfficialVideo = videoEnabled && videoPath.isEmpty()
         val hideText = preferences(ModulePrefs).getBoolean("hide_ota_card_top_text", false)
         val applySharePage =
             preferences(ModulePrefs).getBoolean("apply_device_parameter_sharing_page", false)
@@ -98,6 +99,14 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                             topPreference = WeakReference(instance<Any>())
                             if (bgView != null) topBgView = WeakReference(bgView)
                             if (maskView != null) topMaskView = WeakReference(maskView)
+                            //官方把查到的路径缓存在 mCachedVideoPath 字段，文件删了以后这个旧值还会被
+                            //onSurfaceTextureAvailable 拿去 setDataSource 抛 IOException，先清掉免得崩
+                            if (videoPath.isNotEmpty() && !hasPlayableVideo()) {
+                                runCatching {
+                                    firstFieldOrNull { name = "mCachedVideoPath" }
+                                        ?.of(instance<Any>())?.set(null)
+                                }
+                            }
 
                             val bitmap = loadBackgroundBitmap(backgroundPath) ?: return@after
                             val drawable = RoundedBitmapDrawableFactory.create(
@@ -159,10 +168,13 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                     restoreTopBackground(!show)
                     null
                 }
-                if (hideOfficialVideo) {
-                    //挡掉官方视频后 onBindViewHolder 改走 showStaticTopBackground 分支，
+                if (videoEnabled) {
+                    //开关开着就没有官方视频的位置：有自定义文件时放行官方流程，没有（或文件已被删）
+                    //就挡掉，onBindViewHolder 于是改走 showStaticTopBackground 分支，
                     //正好落到上面 getTopDrawableBg 的收尾里，背景图照常补回去
-                    firstMethodOrNull { name = "isSupportTopVideo" }?.intercept { false }
+                    firstMethodOrNull { name = "isSupportTopVideo" }?.intercept {
+                        if (hasPlayableVideo()) proceed() else false
+                    }
                 }
                 if (backgroundPath.isNotEmpty() || videoPath.isNotEmpty()) {
                     //播放结束官方只把状态置 COMPLETED、不动视图，收敛时机拿到官方回调里最稳；
@@ -202,10 +214,12 @@ object CustomizeDeviceOTACardBackground : YukiBaseHooker() {
                         }
                     }
                 }
-                if (videoPath.isNotEmpty()) {
-                    //原实现会顺带置位 mTopVideoIsWithMask，这里直接给路径并跳过原实现
+                if (videoEnabled) {
+                    //原实现会顺带置位 mTopVideoIsWithMask，这里直接给路径并跳过原实现；
+                    //文件已经没了就返回 null，让官方走「路径为空」的 showTopVideoLastFrame 分支，
+                    //死路径绝不能进到 MediaPlayer.setDataSource（那里只 catch IllegalStateException）
                     firstMethodOrNull { name = "getColorOSVideoPath" }?.intercept {
-                        videoPath
+                        if (hasPlayableVideo()) videoPath else null
                     }
                     //官方在 onPrepared 里 start() 之前调用它，正好用来静音，并用自己算的 centerCrop 换掉官方 Matrix
                     firstMethodOrNull { name = "applyTopVideoDisplayTransform" }?.intercept {
