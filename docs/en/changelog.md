@@ -42,6 +42,7 @@ Entries for versions before `1.3.5_beta` are currently only available in the
 
 #### Optimized
 
+- Redesigned the single-choice, multi-choice and action-list dialogs — all of them now go through one shared dialog component (a single implementation per appearance instead of two hand-written branches), the lists use the shared segmented cards, the selection shows as a trailing check mark or checkbox, and long lists scroll under a height cap instead of being squashed by the keyboard; module shortcuts are pinned per row through a trailing pin icon instead of reverse-inferring the selection, so the English “Only select one item” toast is gone; the touch sampling rate dialog disables OK while nothing is selected, so no invalid value is written
 - Redesigned the app picker dialog — the search field stays on top, sort and filter moved into an inline panel behind the funnel icon, the list now uses the shared segmented cards, and a status row shows the app/selected counts with select-all in multi-select mode; also fixed selections being dropped when the search query is cleared
 - Clarified the descriptions of the “app clone limit” options: “How many apps can be cloned” and “The number of clones a single app can have”
 - The category rows on the function page now use colored badges — they previously resolved an app icon from the scope package name, which showed the battery icon for “Apps”; a new “Colorful category icons” switch falls back to single-color theme badges
