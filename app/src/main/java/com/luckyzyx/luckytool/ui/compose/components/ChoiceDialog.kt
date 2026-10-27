@@ -324,18 +324,13 @@ private fun MiuixChoiceDialog(
                 val onConfirm = buttons.onConfirm
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    // 动作列表没有「确定」：单个「取消」不再 weight(1f) 铺满整行，按内容宽度居中，
-                    // 与 Material 线 dismissButton 的观感一致
-                    horizontalArrangement = if (onConfirm == null) {
-                        Arrangement.Center
-                    } else {
-                        Arrangement.SpaceBetween
-                    },
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
+                    // 动作列表形态没有「确定」：单个「取消」也铺满整行，按内容宽度居中会显得又窄又飘
                     MiuixTextButton(
                         text = stringResource(android.R.string.cancel),
                         onClick = buttons.onCancel,
-                        modifier = if (onConfirm == null) Modifier else Modifier.weight(1f),
+                        modifier = Modifier.weight(1f),
                     )
                     if (onConfirm != null) {
                         Spacer(Modifier.width(20.dp))
@@ -504,7 +499,13 @@ private fun MaterialChoiceDialog(
         },
         // showCancel = false 时不画取消按钮；传 null 而不是空 lambda，空 lambda 仍会占出一个空按钮行
         dismissButton = if (buttons.showCancel) {
-            { TextButton(onClick = buttons.onCancel) { Text(stringResource(android.R.string.cancel)) } }
+            {
+                TextButton(
+                    onClick = buttons.onCancel,
+                    // 动作列表形态没有「确定」：单个「取消」铺满按钮行走廊，而不是挤在行尾
+                    modifier = if (buttons.onConfirm == null) Modifier.fillMaxWidth() else Modifier,
+                ) { Text(stringResource(android.R.string.cancel)) }
+            }
         } else null,
     )
 }
