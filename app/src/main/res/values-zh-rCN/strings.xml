@@ -1161,6 +1161,12 @@
     <string name="appinfo_last_updated_time">最近更新时间</string>
     <string name="appinfo_target_sdk">Target 版本</string>
     <string name="appinfo_system_app">系统应用</string>
+    <string name="appinfo_app_count">共 %1$d 个应用</string>
+    <string name="appinfo_selected_count">已选 %1$d</string>
+    <string name="appinfo_select_all">全选</string>
+    <string name="appinfo_deselect_all">取消全选</string>
+    <string name="appinfo_no_match">没有匹配的应用</string>
+    <string name="appinfo_clear_search">清除搜索</string>
     <!--Intent-->
     <string name="custom_config_app_intent_list">自定义配置App意图列表</string>
     <string name="select_all_share_intent">全选分享意图</string>

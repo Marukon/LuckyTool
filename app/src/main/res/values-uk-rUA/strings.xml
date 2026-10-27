@@ -1002,6 +1002,12 @@
     <string name="appinfo_last_updated_time">Last Updated Time</string>
     <string name="appinfo_target_sdk">Target SDK</string>
     <string name="appinfo_system_app">System App</string>
+    <string name="appinfo_app_count">%1$d додатків</string>
+    <string name="appinfo_selected_count">Вибрано: %1$d</string>
+    <string name="appinfo_select_all">Вибрати все</string>
+    <string name="appinfo_deselect_all">Зняти вибір</string>
+    <string name="appinfo_no_match">Немає відповідних додатків</string>
+    <string name="appinfo_clear_search">Очистити пошук</string>
     <!--Intent-->
     <string name="custom_config_app_intent_list">Custom configuration app intent list</string>
     <string name="select_all_share_intent">Select all share intent</string>

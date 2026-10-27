@@ -1004,6 +1004,12 @@
     <string name="appinfo_last_updated_time">Lần cập nhật cuối</string>
     <string name="appinfo_target_sdk">Mục tiêu SDK</string>
     <string name="appinfo_system_app">Ứng dụng hệ thống</string>
+    <string name="appinfo_app_count">%1$d ứng dụng</string>
+    <string name="appinfo_selected_count">Đã chọn %1$d</string>
+    <string name="appinfo_select_all">Chọn tất cả</string>
+    <string name="appinfo_deselect_all">Bỏ chọn tất cả</string>
+    <string name="appinfo_no_match">Không có ứng dụng phù hợp</string>
+    <string name="appinfo_clear_search">Xóa tìm kiếm</string>
     <!--Intent-->
     <string name="custom_config_app_intent_list">Tùy chỉnh danh sách ý định của ứng dụng</string>
     <string name="select_all_share_intent">Chọn tất cả các mục đích chia sẻ</string>

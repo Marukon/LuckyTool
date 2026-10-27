@@ -1003,6 +1003,12 @@
     <string name="appinfo_last_updated_time">Last Updated Time</string>
     <string name="appinfo_target_sdk">Target SDK</string>
     <string name="appinfo_system_app">System App</string>
+    <string name="appinfo_app_count">%1$d aplicații</string>
+    <string name="appinfo_selected_count">%1$d selectate</string>
+    <string name="appinfo_select_all">Selectează tot</string>
+    <string name="appinfo_deselect_all">Deselectează tot</string>
+    <string name="appinfo_no_match">Nicio aplicație potrivită</string>
+    <string name="appinfo_clear_search">Șterge căutarea</string>
     <!--Intent-->
     <string name="custom_config_app_intent_list">Custom configuration app intent list</string>
     <string name="select_all_share_intent">Select all share intent</string>

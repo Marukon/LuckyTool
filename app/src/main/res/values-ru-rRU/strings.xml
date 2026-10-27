@@ -1003,6 +1003,12 @@
     <string name="appinfo_last_updated_time">Время последнего обновления</string>
     <string name="appinfo_target_sdk">Целевая версия SDK</string>
     <string name="appinfo_system_app">Системное приложение</string>
+    <string name="appinfo_app_count">%1$d приложений</string>
+    <string name="appinfo_selected_count">Выбрано: %1$d</string>
+    <string name="appinfo_select_all">Выбрать все</string>
+    <string name="appinfo_deselect_all">Снять выбор</string>
+    <string name="appinfo_no_match">Нет подходящих приложений</string>
+    <string name="appinfo_clear_search">Очистить поиск</string>
     <!--Intent-->
     <string name="custom_config_app_intent_list">Список намерений приложения пользовательской конфигурации</string>
     <string name="select_all_share_intent">Выбрать все намерения поделиться</string>

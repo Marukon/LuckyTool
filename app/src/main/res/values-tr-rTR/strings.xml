@@ -1202,6 +1202,12 @@
     <string name="appinfo_last_updated_time">Son Güncelleme Zamanı</string>
     <string name="appinfo_target_sdk">Hedeflenen Cihazın Kullandığı vs SDK Api  Seviyesi .</string>
     <string name="appinfo_system_app">Cihaza Ait Sistem Uygulamasıdır...</string>
+    <string name="appinfo_app_count">%1$d uygulama</string>
+    <string name="appinfo_selected_count">%1$d seçili</string>
+    <string name="appinfo_select_all">Tümünü seç</string>
+    <string name="appinfo_deselect_all">Seçimi kaldır</string>
+    <string name="appinfo_no_match">Eşleşen uygulama yok</string>
+    <string name="appinfo_clear_search">Aramayı temizle</string>
     
     <!--Intent-->
     <string name="custom_config_app_intent_list">Özel uygulamaların \"Nefen Kullanılmak İsteniyor/Amacı Niyet vs. (intent)\" konfigürasyon listesi</string>
