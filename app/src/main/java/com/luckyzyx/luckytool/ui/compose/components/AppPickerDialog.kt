@@ -8,6 +8,9 @@ import android.graphics.drawable.Drawable
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,9 +26,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -44,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
@@ -59,7 +65,7 @@ import androidx.core.graphics.createBitmap
 import com.luckyzyx.luckytool.R
 import com.luckyzyx.luckytool.data.AppInfo
 import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItem
-import com.luckyzyx.luckytool.ui.compose.components.material.MaterialListItem
+import com.luckyzyx.luckytool.ui.compose.components.material.MaterialItemContainer
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixDialogScrollBody
 import com.luckyzyx.luckytool.ui.compose.components.miuix.MiuixPrefItem
 import com.luckyzyx.luckytool.ui.theme.LocalUiMode
@@ -95,8 +101,9 @@ enum class AppSortMode(@StringRes val labelRes: Int) {
 /** 对话框内应用列表的高度上限：两条线的弹层都不给内容加高度上限，由内容自己收敛 */
 private val PickerListMaxHeight: Dp = 420.dp
 
-/** 行内图标尺寸（Material 线额外裁成圆角方块） */
+/** 行内图标尺寸：Miuix 线 44dp，Material 线的紧凑行用 34dp */
 private val AppIconSize: Dp = 44.dp
+private val MaterialAppIconSize: Dp = 34.dp
 
 /** Drawable → Painter（AppInfo.icon 为平台 Drawable，转位图渲染，避免引入图片库） */
 @Composable
@@ -744,22 +751,22 @@ internal fun MiuixToggleChip(
 
 /** 应用图标：无图标时留同等占位，保证行高一致 */
 @Composable
-private fun AppIcon(icon: Drawable?, modifier: Modifier = Modifier) {
+private fun AppIcon(icon: Drawable?, modifier: Modifier = Modifier, size: Dp = AppIconSize) {
     val painter = rememberAppIconPainter(icon)
-    val box = modifier.size(AppIconSize)
+    val box = modifier.size(size)
     if (painter != null) {
         Image(
             painter = painter,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = box.clip(RoundedCornerShape(12.dp)),
+            modifier = box.clip(RoundedCornerShape(size * 0.27f)),
         )
     } else {
         Box(box)
     }
 }
 
-/** Material 线条目：与全局 Expressive 分段卡片一致的条目外观 */
+/** Material 线条目：分段卡片外壳 + 紧凑两行（14sp 应用名 / 12sp 包名），尾部 18dp 圆形勾选 */
 @Composable
 private fun MaterialAppRow(
     app: AppInfo,
@@ -767,22 +774,63 @@ private fun MaterialAppRow(
     checked: Boolean,
     onSelect: () -> Unit,
 ) {
-    MaterialListItem(
-        onClick = { onSelect() },
-        headlineContent = {
-            Text(app.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        },
-        supportingContent = {
-            Text(app.packageName, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        },
-        leadingContent = { AppIcon(app.icon) },
-        trailingContent = {
-            if (multiMode) {
-                Checkbox(checked = checked, onCheckedChange = { onSelect() })
+    MaterialItemContainer {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onSelect() }
+                .padding(start = 12.dp, end = 10.dp, top = 7.dp, bottom = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppIcon(app.icon, size = MaterialAppIconSize)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 10.dp),
+            ) {
+                Text(
+                    text = app.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = app.packageName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-        },
-        modifier = Modifier.fillMaxWidth(),
-    )
+            if (multiMode) {
+                Spacer(Modifier.width(8.dp))
+                MaterialCheckIndicator(checked)
+            }
+        }
+    }
+}
+
+/** 多选指示：M3 Checkbox 自带 48dp 触摸区，塞进对话框会挤掉包名宽度，这里用 18dp 圆形指示 */
+@Composable
+private fun MaterialCheckIndicator(checked: Boolean) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .size(18.dp)
+            .clip(CircleShape)
+            .background(if (checked) colors.primary else Color.Transparent)
+            .border(1.5.dp, if (checked) colors.primary else colors.outline, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (checked) {
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = null,
+                tint = colors.onPrimary,
+                modifier = Modifier.size(12.dp),
+            )
+        }
+    }
 }
 
 /** Miuix 线条目：多选用 CheckboxPreference（勾选在尾部），单选用 BasicComponent，整行可点 */
