@@ -128,12 +128,13 @@ object LauncherBackupHooker : YukiBaseHooker() {
      * 为什么不能像以前那样「hostApplication 为空就直接 return」：onHook 常常早于 Application#onCreate
      * 执行（模块在 app_process 阶段装载，Application 还没创建），此时 hostApplication 还是空，
      * 一旦直接返回，指令通道就再也不会注册 —— 重启后点备份必然等到超时的直接原因。
-     * 所以这里三路兜底：hostApplication → ActivityThread.currentApplication() → 短间隔重试，
-     * 另有挂载点在 LauncherApplication#onCreate 时用钩到的实例直接初始化。
+     * 所以这里先等 hostApplication，等不到就短间隔重试；App 实例真正的来源是挂载点
+     * [installProcessStartMountPoint]：桌面 Application#onCreate 里拿到的就是 Application 自己，
+     * 不再自己反射 ActivityThread.currentApplication()。
      */
     private fun tryInitHost() {
         if (hostInitialized) return
-        val context = hostApplication ?: currentApplicationOrNull()
+        val context = hostApplication
         if (context == null) {
             scheduleInitRetry()
             return
@@ -156,13 +157,6 @@ object LauncherBackupHooker : YukiBaseHooker() {
             }, INIT_RETRY_DELAY_MS)
         }.onFailure { YLog.debug("$TAG 提交初始化重试失败", it) }
     }
-
-    /** 兜底取 Application：进程内 currentApplication 指向已创建的 Application，取不到返回 null */
-    private fun currentApplicationOrNull(): Application? = runCatching {
-        Class.forName("android.app.ActivityThread")
-            .getDeclaredMethod("currentApplication")
-            .invoke(null) as? Application
-    }.getOrNull()
 
     /** 真正的初始化，只做一次；先注册通道再置 mountReady，避免指令落在空窗里 */
     @Synchronized
