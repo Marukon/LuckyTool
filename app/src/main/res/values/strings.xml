@@ -1560,6 +1560,8 @@
     <string name="launcher_backup_category_actions">Actions</string>
     <string name="launcher_backup_category_history">Snapshot history</string>
     <string name="launcher_backup_status">Snapshot status</string>
+    <string name="launcher_backup_last_auto">Last auto backup</string>
+    <string name="launcher_backup_auto_never">No auto backup yet</string>
     <string name="launcher_backup_busy">Working…</string>
     <string name="launcher_backup_waiting_launcher">Waiting for the launcher process… (attempt %1$d/%2$d)</string>
     <string name="launcher_backup_no_launcher">Launcher package not detected: enable the launcher scope in LSPosed and open the home screen once.</string>

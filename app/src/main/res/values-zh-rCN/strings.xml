@@ -1378,6 +1378,8 @@
     <string name="launcher_backup_category_actions">操作</string>
     <string name="launcher_backup_category_history">快照历史</string>
     <string name="launcher_backup_status">快照状态</string>
+    <string name="launcher_backup_last_auto">上次自动备份</string>
+    <string name="launcher_backup_auto_never">还没有自动备份过</string>
     <string name="launcher_backup_busy">执行中…</string>
     <string name="launcher_backup_waiting_launcher">等待桌面进程就绪…（第 %1$d/%2$d 次尝试）</string>
     <string name="launcher_backup_no_launcher">未检测到桌面包名：请在 LSPosed 中为本模块勾选桌面作用域，并先打开一次桌面</string>
