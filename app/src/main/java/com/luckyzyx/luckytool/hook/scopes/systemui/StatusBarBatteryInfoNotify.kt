@@ -253,7 +253,7 @@ object StatusBarBatteryInfoNotify : YukiBaseHooker() {
         val powerCalc = if (isSeriesDual || isParallelDual) {
             (voltage + voltage2) * electricCurrent / 1000.0
         } else voltage * electricCurrent / 1000.0
-
+        
         val batteryIcon = safeOf(android.R.drawable.sym_def_app_icon) {
             if (isCharging) R.drawable.ic_round_battery_charging_full_24
             else when (level) {
@@ -377,7 +377,11 @@ object StatusBarBatteryInfoNotify : YukiBaseHooker() {
             //且 0x7f 段 ID 与 SystemUI 自身资源表易撞车；解析失败直接抛
             //IllegalArgumentException("Icon resource cannot be found")，notify 根本不会执行。
             //传 null Resources 只记录包名+ID、不做任何解析，加载时任何进程都经已安装模块 APK 获取
-            smallIcon(IconCompat.createWithResource(null, BuildConfig.APPLICATION_ID, batteryIcon))
+            smallIcon(
+                IconCompat.createWithResource(
+                    module.resources, BuildConfig.APPLICATION_ID, batteryIcon
+                )
+            )
             contentTitle = "BatteryInfo"
             contentText = info
             customContentView = remoteViews
