@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.content.ContentResolver
 import android.content.ContentUris
-import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
@@ -30,6 +29,7 @@ import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.HiddenApp
 import com.luckyzyx.luckytool.utils.LauncherBackupGate
 import com.luckyzyx.luckytool.utils.LauncherBackupPrefs
+import com.luckyzyx.luckytool.utils.LauncherBackupSink
 import com.luckyzyx.luckytool.utils.LauncherBackupUtils
 import com.luckyzyx.luckytool.utils.LauncherCommand
 import com.luckyzyx.luckytool.utils.LauncherSnapshotTag
@@ -317,9 +317,10 @@ object LauncherBackupHooker : YukiBaseHooker() {
      *
      * 为什么放在桌面侧：桌面进程几乎总在运行，而 app 进程平时不在，定时任务还会被 Doze / 电池优化压后；
      * 每轮自查的成本只是读一次宿主 prefs 加一次比较。
-     * 为什么自己写文件：走 MediaStore.Downloads 投稿，不需要存储权限，也不必叫醒 app；
-     * 真机实测 launcher 直接写 /storage/emulated/0/Download 是 Permission denied（uid 10238 没有
-     * MANAGE_EXTERNAL_STORAGE / WRITE_EXTERNAL_STORAGE），所以不能走文件路径那条路。
+     * 为什么自己写文件：不必叫醒 app，落盘由 [LauncherBackupSink] 按顺序换写法
+     * （MediaStore 投稿优先，宿主私有目录兜底）；真机实测 launcher 直接写 /storage/emulated/0/Download
+     * 是 Permission denied（uid 10238 没有 MANAGE_EXTERNAL_STORAGE / WRITE_EXTERNAL_STORAGE），
+     * 所以公共目录只能走投稿，不能走文件路径。
      */
     private fun installAutoBackupSelfCheck() {
         if (selfCheckInstalled) return
@@ -527,10 +528,10 @@ object LauncherBackupHooker : YukiBaseHooker() {
     }
 
     /**
-     * 自动备份：桌面进程内通过 MediaStore.Downloads 投稿写文件。
-     * 为什么不写文件路径：launcher 的 manifest 只有 READ_EXTERNAL_STORAGE，
-     * appops 里 MANAGE_EXTERNAL_STORAGE / WRITE_EXTERNAL_STORAGE 都是 ignore，
-     * 真机实测直接写 /storage/emulated/0/Download 会 Permission denied；MediaStore 投稿不需要存储权限。
+     * 自动备份：快照在桌面进程内抓，落盘交给 [LauncherBackupSink] 按顺序换写法。
+     * 为什么不在这一层固定用 MediaStore：真机上它报 Unknown URL（宿主进程拿不到 media provider），
+     * 而裸文件写公共 Download 又 Permission denied（launcher 没有存储权限），
+     * 加重试解决不了写法不通的问题，只能换写法并把每种写法的失败原文带出去。
      * 写成功才由调用方记「上次成功」；失败把异常原文带回去，方便真机定位。
      */
     private fun autoBackup(now: Long): Outcome {
@@ -540,70 +541,28 @@ object LauncherBackupHooker : YukiBaseHooker() {
             return Outcome(false, payload.exceptionOrNull()?.message ?: "snapshot failed")
         }
         val snapshot = payload.getOrThrow()
-        val resolver = context.contentResolver
-        val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
         val displayName = LauncherBackupUtils.backupFileName(now, LauncherSnapshotTag.AUTO)
-        val pending = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
-            //RELATIVE_PATH 要以 / 结尾；目录由 RELATIVE_DIR 派生，避免两处写死
-            put(MediaStore.MediaColumns.RELATIVE_PATH, LauncherBackupUtils.RELATIVE_DIR + "/")
-            put(MediaStore.MediaColumns.MIME_TYPE, "application/zip")
-            put(MediaStore.MediaColumns.IS_PENDING, 1)
+        val bytes = LauncherBackupUtils.containerBytes(snapshot.metaJson, snapshot.layoutJson)
+        val placement = runCatching { LauncherBackupSink.write(context, displayName, bytes) }
+            .getOrElse { throwable ->
+                YLog.debug("$TAG 自动备份落盘失败", throwable)
+                val reason = throwable.message ?: throwable.javaClass.simpleName
+                return Outcome(
+                    false,
+                    displayName + ": " + reason,
+                    LauncherBackupGate.mentionsProviderUnavailable(reason),
+                )
+            }
+        //两条落盘路线各有各的淘汰口径：MediaStore 删行，宿主私有目录删文件
+        placement.collection?.let { collection ->
+            evictSnapshots(context.contentResolver, collection, displayName)
         }
-        val target = runCatching { resolver.insert(collection, pending) }.getOrElse { throwable ->
-            YLog.debug("$TAG 自动备份投稿失败", throwable)
-            return Outcome(
-                false,
-                "insert failed: " + (throwable.message ?: throwable.javaClass.simpleName),
-                LauncherBackupGate.isProviderUnavailable(throwable),
-            )
-        } ?: return Outcome(false, "insert failed: $displayName")
-
-        val written = runCatching {
-            val bytes = LauncherBackupUtils.containerBytes(snapshot.metaJson, snapshot.layoutJson)
-            resolver.openOutputStream(target)?.use { output -> output.write(bytes) }
-                ?: error("openOutputStream returned null")
-            //写完再解除 pending，否则别的应用会先看到半份文件
-            val publish = ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }
-            resolver.update(target, publish, null, null)
-            //回读 SIZE：投稿成功但字节为 0 说明写流没真落盘，按失败处理
-            mediaSize(resolver, target) > 0L
-        }.getOrElse { throwable ->
-            YLog.debug("$TAG 自动备份写流失败: $target", throwable)
-            deleteMedia(resolver, target)
-            return Outcome(
-                false,
-                displayName + ": " + (throwable.message ?: throwable.javaClass.simpleName),
-                LauncherBackupGate.isProviderUnavailable(throwable),
-            )
-        }
-        if (!written) {
-            LogUtils.d(TAG, "autoBackup", "自动备份投稿后大小为 0: $target")
-            deleteMedia(resolver, target)
-            return Outcome(false, "投稿后大小为 0: $displayName")
-        }
-        LogUtils.d(TAG, "autoBackup", "自动备份完成 " + displayName + " " + snapshot.summary)
-        evictSnapshots(resolver, collection, displayName)
+        placement.file?.let { file -> evictFiles(file.parentFile, displayName) }
+        LogUtils.d(
+            TAG, "autoBackup",
+            "自动备份完成 " + displayName + " -> " + placement.where + " " + snapshot.summary,
+        )
         return Outcome(true, snapshot.summary)
-    }
-
-    /** 回读 MediaStore 行的大小（字节）；读不到按 0 处理，由调用方判失败 */
-    private fun mediaSize(resolver: ContentResolver, uri: Uri): Long = runCatching {
-        resolver.query(uri, arrayOf(MediaStore.MediaColumns.SIZE), null, null, null)
-            ?.use { cursor ->
-                if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else 0L
-            } ?: 0L
-    }.getOrDefault(0L)
-
-    /** 清掉投稿失败的残行：IS_PENDING=1 的孤儿行用户看不到，但会一直占着配额 */
-    private fun deleteMedia(resolver: ContentResolver, uri: Uri) {
-        runCatching {
-            resolver.delete(
-                uri,
-                null,
-                null
-            )
-        }.onFailure { YLog.debug("$TAG 清理投稿残行失败: $uri", it) }
     }
 
     /** 快照容器内容：meta.json 放概要（行数/隐藏数），layout.json 放全量数据（含 icon blob） */
@@ -728,6 +687,41 @@ object LauncherBackupHooker : YukiBaseHooker() {
                     resolver.delete(ContentUris.withAppendedId(collection, id), null, null)
                 }.getOrDefault(0) > 0
                 if (!removed) LogUtils.d(TAG, "evictSnapshots", "删除旧投稿失败: " + candidate.fileName)
+            }
+    }
+
+    /** 宿主私有目录里的一份快照（保留策略按文件名判定，不看 DATE_ADDED） */
+    private data class FileSnapshot(
+        override val name: String,
+        override val tag: LauncherSnapshotTag,
+        override val timeMillis: Long,
+        val file: File,
+    ) : SnapshotCandidate
+
+    /**
+     * 私有目录的保留策略：与 MediaStore 行共用 [LauncherBackupUtils.planEvictions]，
+     * 候选来自文件名（命名规则由 [LauncherBackupUtils.backupFileName] 保证），非本工具的文件不动。
+     */
+    private fun evictFiles(dir: File?, keepName: String) {
+        if (dir == null) return
+        val candidates = runCatching {
+            dir.listFiles().orEmpty().mapNotNull { file ->
+                val parsed = LauncherBackupUtils.parseSnapshotName(file.name) ?: return@mapNotNull null
+                FileSnapshot(parsed.name, parsed.tag, parsed.timeMillis, file)
+            }
+        }.getOrElse { throwable ->
+            YLog.debug("$TAG 列出私有目录快照失败", throwable)
+            return
+        }
+        val excluded =
+            LauncherBackupUtils.parseSnapshotName(keepName)?.name?.let { setOf(it) } ?: emptySet()
+        val fileByName = candidates.associate { it.name to it.file }
+        LauncherBackupUtils.planEvictions(candidates, LauncherBackupUtils.MAX_SNAPSHOTS, excluded)
+            .forEach { candidate ->
+                val file = fileByName[candidate.name] ?: return@forEach
+                if (!file.delete()) {
+                    LogUtils.d(TAG, "evictFiles", "删除旧快照失败: " + file.name)
+                }
             }
     }
 

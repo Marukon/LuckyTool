@@ -1571,7 +1571,7 @@
     <string name="launcher_backup_err_io">檔案讀寫失敗：%1$s</string>
     <string name="launcher_backup_err_invalid">這個檔案不是有效的桌面佈局備份</string>
     <string name="launcher_backup_auto">自動備份</string>
-    <string name="launcher_backup_auto_summary">由桌面程序按週期間隔自查並直接生成快照（寫到 Download），需要 LSPosed 中啟用桌面作用域；手動「立即備份」也會從此刻重新計時</string>
+    <string name="launcher_backup_auto_summary">由桌面程序按週期間隔自查並直接生成快照（預設寫到 Download，投稿失敗時退到桌面媒體目錄並自動搬回），需要 LSPosed 中啟用桌面作用域；手動「立即備份」也會從此刻重新計時</string>
     <string name="launcher_backup_interval">備份週期</string>
     <string name="launcher_backup_interval_summary">當前：%s</string>
     <string name="launcher_backup_interval_6h">6 小時</string>

@@ -1592,7 +1592,7 @@
     <string name="launcher_backup_err_io">File error: %1$s</string>
     <string name="launcher_backup_err_invalid">This file is not a valid desktop layout backup</string>
     <string name="launcher_backup_auto">Automatic backup</string>
-    <string name="launcher_backup_auto_summary">The launcher process checks the interval itself and writes the snapshot to Download; the launcher scope must be enabled in LSPosed. A manual backup also restarts the countdown</string>
+    <string name="launcher_backup_auto_summary">The launcher process checks the interval itself and writes the snapshot to Download (falling back to its own media directory, which the app moves back into place); the launcher scope must be enabled in LSPosed. A manual backup also restarts the countdown</string>
     <string name="launcher_backup_interval">Backup interval</string>
     <string name="launcher_backup_interval_summary">Current: %s</string>
     <string name="launcher_backup_interval_6h">6 hours</string>

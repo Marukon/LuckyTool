@@ -1410,7 +1410,7 @@
     <string name="launcher_backup_err_io">文件读写失败：%1$s</string>
     <string name="launcher_backup_err_invalid">这个文件不是有效的桌面布局备份</string>
     <string name="launcher_backup_auto">自动备份</string>
-    <string name="launcher_backup_auto_summary">由桌面进程按周期间隔自查并直接生成快照（写到 Download），需要 LSPosed 中启用桌面作用域；手动「立即备份」也会从此刻重新计时</string>
+    <string name="launcher_backup_auto_summary">由桌面进程按周期间隔自查并直接生成快照（默认写到 Download，投稿失败时退到桌面媒体目录并自动搬回），需要 LSPosed 中启用桌面作用域；手动「立即备份」也会从此刻重新计时</string>
     <string name="launcher_backup_interval">备份周期</string>
     <string name="launcher_backup_interval_summary">当前：%s</string>
     <string name="launcher_backup_interval_6h">6 小时</string>

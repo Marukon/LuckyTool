@@ -189,7 +189,11 @@ object LauncherBackupPage {
             // 忙碌态与快照列表都不在 prefs 里：由宿主把 flow 写成对象级状态，DSL 行才会重建
             LaunchedEffect(busyFlow) { busyState.value = busyFlow }
             LaunchedEffect(busyHintFlow) { busyHintState.value = busyHintFlow }
-            LaunchedEffect(Unit) { reload() }
+            LaunchedEffect(Unit) {
+                // 宿主退到媒体目录的快照要先搬回正式目录，搬运可能要读几 MB，放 IO 线程
+                LauncherBackupTransfer.adoptHostFallback(c)
+                reload()
+            }
 
             // 恢复必须二次确认：会先自动补拍一份 pre_restore，然后整表覆盖布局
             val target = pendingRestoreState.value
