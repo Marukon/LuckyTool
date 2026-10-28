@@ -40,6 +40,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.lsposed.lsparanoid.Obfuscate
 import java.io.File
+import java.lang.reflect.Modifier
 import java.util.concurrent.Executors
 
 /**
@@ -832,15 +833,11 @@ object LauncherBackupHooker : YukiBaseHooker() {
         if (sync.toHide.isEmpty() && sync.toUnhide.isEmpty()) return "hidden=unchanged"
 
         val context = hostContext ?: return "hidden=skip(no context)"
-        val manager = runCatching {
-            DEEP_PROTECTED_MANAGER.toClass(launcherClassLoader()).resolve().optional(true)
-                .firstMethodOrNull { name = "k"; parameters(Context::class); superclass() }
-                ?.invoke(context)
-        }.getOrNull()
+        val manager = protectedAppsManager(context)
         //I(String, boolean, UserHandle)：布尔参数按原始类型 boolean 找，跟 getMethod 时的语义一致
-        val method = manager?.asResolver()?.optional(true)?.firstMethodOrNull {
-            name = "I"
+        val method = manager?.asResolver()?.firstMethodOrNull {
             parameters(String::class, java.lang.Boolean.TYPE, UserHandle::class)
+            returnType = Void.TYPE
             superclass()
         }
         if (manager == null || method == null) {
@@ -878,6 +875,23 @@ object LauncherBackupHooker : YukiBaseHooker() {
         val unchanged = remaining.toHide.size + remaining.toUnhide.size
         return "hidden ok=" + (plan.size - unchanged) + " fail=" + failed + " unchanged=" + unchanged
     }
+
+    /**
+     * 取 DPAM 单例。ROM 里这个入口的方法名是混淆的（真机上抓到过 "k"），按名字找一次 ROM 更新就废，
+     * 所以只按签名定位：静态 + 唯一参数 Context + 返回类型就是 DPAM 自身；拿不到再退一步找同类型的静态字段。
+     */
+    private fun protectedAppsManager(context: Context): Any? = runCatching {
+        val managerClass = DEEP_PROTECTED_MANAGER.toClass(launcherClassLoader())
+        val accessor = managerClass.declaredMethods.firstOrNull { method ->
+            Modifier.isStatic(method.modifiers) &&
+                method.parameterTypes.contentEquals(arrayOf(Context::class.java)) &&
+                managerClass.isAssignableFrom(method.returnType)
+        }
+        if (accessor != null) return@runCatching accessor.invoke(null, context)
+        managerClass.declaredFields.firstOrNull { field ->
+            Modifier.isStatic(field.modifiers) && managerClass.isAssignableFrom(field.type)
+        }?.get(null)
+    }.getOrNull()
 
     /**
      * 存储层兜底：DPAM 里的 HiddenDataCollection 声明了 (String, UserHandle) -> void 的 add/remove 两个方法，
