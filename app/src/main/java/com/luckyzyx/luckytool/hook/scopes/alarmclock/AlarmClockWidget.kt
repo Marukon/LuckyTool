@@ -1,22 +1,21 @@
 package com.luckyzyx.luckytool.hook.scopes.alarmclock
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Handler
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
 import android.widget.RemoteViews
-import androidx.collection.arrayMapOf
 import androidx.core.graphics.toColorInt
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.classOf
-import com.highcapable.yukihookapi.extension.kavaref.hook
+import com.highcapable.yukihookapi.extension.kavaref.intercept
 import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
+import com.luckyzyx.luckytool.utils.getOSVersionCode
 import com.luckyzyx.luckytool.utils.safeOfNull
 import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
@@ -51,7 +50,10 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
         }
 
         /**
-         * 新版时钟V14+替换RemoteViews
+         * 新版时钟V14+处理RemoteViews
+         *
+         * 优先就地往返回的 RemoteViews 里追加反射动作（不换 layout），
+         * 探测不到可用方法时才回退到推导出的 layout。
          * @receiver Class<*>
          */
         fun YukiBaseHooker.hookBaseClock(clazz: Class<Any>) {
@@ -60,107 +62,22 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                     emptyParameters()
                     returnType = RemoteViews::class
                 }.forEach {
-                    it.hook {
-                        after {
-                            val context = (field { type = Context::class }.firstOrNull()
+                    it.intercept {
+                        //先跑原逻辑，避免任何探测异常影响小组件刷新
+                        val raw = proceed()
+                        val remoteViews = raw as? RemoteViews ?: return@intercept raw
+                        //跟随系统：零动作
+                        if (redMode == "0") return@intercept raw
+                        val context = safeOfNull {
+                            (field { type = Context::class }.firstOrNull()
                                 ?: field { type = Context::class; superclass() }.firstOrNull())
-                                ?.of(instance)?.get<Context>() ?: return@after
-                            val res = result<RemoteViews>() ?: return@after
-                            val layoutName = safeOfNull {
-                                context.resources.getResourceEntryName(res.layoutId)
-                            } ?: return@after
-                            val replaceLayoutId = getReplaceLayout(context, layoutName, redMode)
-                                ?: return@after
-                            result = RemoteViews(context.packageName, replaceLayoutId)
-                        }
+                                ?.of(instance)?.get<Context>()
+                        } ?: return@intercept raw
+                        //就地开关命中时返回 null（remoteViews 已被直接改写），只有兜底替换才返回新实例
+                        safeOfNull {
+                            RemoteViewsRedOne.handle(context, remoteViews, redMode)
+                        } ?: return@intercept raw
                     }
-                }
-            }
-        }
-
-        /**
-         * 获取要替换的布局
-         * @param context Context
-         * @param layoutName String
-         * @param redMode String
-         * @return Int?
-         */
-        @SuppressLint("DiscouragedApi")
-        fun getReplaceLayout(context: Context, layoutName: String, redMode: String): Int? {
-            val isRedMode = layoutName.contains("red")
-            val replaceLayoutName = when (redMode) {
-                "1" -> if (isRedMode) null else convertLayoutResMap(layoutName, redMode)
-                "2" -> if (isRedMode) convertLayoutResMap(layoutName, redMode) else null
-                else -> null
-            } ?: return null
-            val resId =
-                context.resources.getIdentifier(replaceLayoutName, "layout", context.packageName)
-            return resId.takeIf { it != 0 }
-        }
-
-        /**
-         * 转换布局名
-         * @param layoutName String
-         * @param redMode String
-         * @return String?
-         */
-        fun convertLayoutResMap(layoutName: String, redMode: String): String? {
-            val layouts = arrayMapOf(
-                //OnePlusWidget
-                "op_double_clock_red_widget_land_view" to "op_double_clock_widget_land_view",
-                "op_double_clock_red_widget_view" to "op_double_clock_widget_view",
-                "one_plus_red_widget_land_view" to "one_plus_widget_land_view",
-                "one_plus_red_widget_view" to "one_plus_widget_view",
-                "table_op_double_clock_red_widget_land_view" to "table_op_double_clock_widget_land_view",
-                "table_op_double_clock_red_widget_view" to "table_op_double_clock_widget_view",
-                "table_one_plus_red_widget_land_view" to "table_one_plus_widget_land_view",
-                "table_one_plus_red_widget_view" to "table_one_plus_widget_view",
-                //OppoWeather
-                "hor_double_clock_red_widget_land_view_t" to "hor_double_clock_widget_land_view_t",
-                "hor_double_clock_red_widget_view_t" to "hor_double_clock_widget_view_t",
-                "hor_single_clock_red_widget_land_view_t" to "hor_single_clock_widget_land_view_t",
-                "hor_single_clock_red_widget_view_t" to "hor_single_clock_widget_view_t",
-                "table_hor_double_clock_red_widget_land_view_t" to "table_hor_double_clock_widget_land_view_t",
-                "table_hor_double_clock_red_widget_view_t" to "table_hor_double_clock_widget_view_t",
-                "table_hor_single_clock_red_widget_land_view_t" to "table_hor_single_clock_widget_land_view_t",
-                "table_hor_single_clock_red_widget_view_t" to "table_hor_single_clock_widget_view_t",
-                //OppoWeatherSingle
-                "one_line_double_clock_red_widget_land_view_t" to "one_line_double_clock_widget_land_view_t",
-                "one_line_double_clock_red_widget_view_t" to "one_line_double_clock_widget_view_t",
-                "one_line_hor_single_clock_red_widget_land_view_t" to "one_line_hor_single_clock_widget_land_view_t",
-                "one_line_hor_single_clock_red_widget_view_t" to "one_line_hor_single_clock_widget_view_t",
-                "table_one_line_double_clock_red_widget_land_view_t" to "table_one_line_double_clock_widget_land_view_t",
-                "table_one_line_double_clock_red_widget_view_t" to "table_one_line_double_clock_widget_view_t",
-                "table_one_line_hor_single_clock_red_widget_land_view_t" to "table_one_line_hor_single_clock_widget_land_view_t",
-                "table_one_line_hor_single_clock_red_widget_view_t" to "table_one_line_hor_single_clock_widget_view_t",
-                //OppoWeatherVertical
-                "vertical_double_clock_red_widget_land_view_t" to "vertical_double_clock_widget_land_view_t",
-                "vertical_double_clock_red_widget_view_t" to "vertical_double_clock_widget_view_t",
-                "vertical_single_clock_red_widget_land_view_t" to "vertical_single_clock_widget_land_view_t",
-                "vertical_single_clock_red_widget_view_t" to "vertical_single_clock_widget_view_t",
-                "table_vertical_double_clock_red_widget_land_view_t" to "table_vertical_double_clock_widget_land_view_t",
-                "table_vertical_double_clock_red_widget_view_t" to "table_vertical_double_clock_widget_view_t",
-                "table_vertical_single_clock_red_widget_land_view_t" to "table_vertical_single_clock_widget_land_view_t",
-                //OppoWeatherMultiVertical
-                "hor_double_clock_red_widget_land_view_t" to "hor_double_clock_widget_land_view_t",
-                "hor_double_clock_red_widget_view_t" to "hor_double_clock_widget_view_t",
-                "hor_single_clock_red_widget_land_view_t" to "hor_single_clock_widget_land_view_t",
-                "vertical_multi_clock_red_widget_view_t" to "vertical_multi_clock_widget_view_t",
-                "table_hor_double_clock_red_widget_land_view_t" to "table_hor_double_clock_widget_land_view_t",
-                "table_hor_double_clock_red_widget_view_t" to "table_hor_double_clock_widget_view_t",
-                "table_hor_single_clock_red_widget_land_view_t" to "table_hor_single_clock_widget_land_view_t",
-                "table_vertical_multi_clock_red_widget_view_t" to "table_vertical_multi_clock_widget_view_t",
-                //OxygenWeatherSingle
-
-                //RealmeWeather
-
-            )
-            val filter = layouts.filter { it.key == layoutName || it.value == layoutName }
-            return filter.firstNotNullOfOrNull {
-                when (redMode) {
-                    "1" -> it.key
-                    "2" -> it.value
-                    else -> null
                 }
             }
         }
@@ -168,17 +85,20 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
 
 
     override fun onHook() {
+        //ColorOS 17 (40 -> c17.0.0) 起系统自带红一开关，本模块不再接管，不注册任何 hook
+        if (getOSVersionCode >= 40) return
+
         redMode = preferences(ModulePrefs).getString("alarmclock_widget_redone_mode", "0")
         dataChannel.wait<String>("alarmclock_widget_redone_mode") { redMode = it }
 
         val onePlusWidget = OnePlusWidget.toClassOrNull()?.resolve() ?: return
         when {
-            onePlusWidget.optional(true).firstMethodOrNull {
+            onePlusWidget.firstMethodOrNull {
                 parameters(String::class, String::class)
                 returnType = CharSequence::class
             } != null -> loadHooker(AlarmClock12)
 
-            onePlusWidget.optional(true).firstMethodOrNull {
+            onePlusWidget.firstMethodOrNull {
                 returnType = RemoteViews::class
             } != null -> loadHooker(AlarmClock130(dexKitBridge))
 
@@ -281,14 +201,14 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                         parameters { it[0] == classOf<Context>() && it[1] == classOf<String>() }
                         parameterCount { it in 2..3 }
                     }.forEach {
-                        it.hook {
-                            after {
-                                if (redMode == "0") return@after
-                                result = when (redMode) {
-                                    "1" -> result<CharSequence>()?.let { s -> setCharRedOne(s) }
-                                    "2" -> result<CharSequence>().toString()
-                                    else -> result
-                                }
+                        it.intercept {
+                            if (redMode == "0") return@intercept proceed()
+                            val raw = proceed()
+                            val text = raw as? CharSequence ?: return@intercept raw
+                            when (redMode) {
+                                "1" -> setCharRedOne(text)
+                                "2" -> text.toString()
+                                else -> raw
                             }
                         }
                     }
@@ -304,14 +224,14 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
                 firstMethod {
                     parameters(String::class, String::class)
                     returnType = CharSequence::class
-                }.hook {
-                    after {
-                        if (redMode == "0") return@after
-                        result = when (redMode) {
-                            "1" -> result<CharSequence>()?.let { setCharRedOne(it) }
-                            "2" -> result<CharSequence>().toString()
-                            else -> result
-                        }
+                }.intercept {
+                    if (redMode == "0") return@intercept proceed()
+                    val raw = proceed()
+                    val text = raw as? CharSequence ?: return@intercept raw
+                    when (redMode) {
+                        "1" -> setCharRedOne(text)
+                        "2" -> text.toString()
+                        else -> raw
                     }
                 }
             }
