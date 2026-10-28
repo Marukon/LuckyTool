@@ -504,6 +504,7 @@
     <string name="remove_72hour_password_verification_summary">移除开机后 72 小时内不使用密码解锁的安全限制，系统重启生效</string>
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">时钟组件“红 1”模式</string>
+    <string name="alarmclock_widget_redone_mode_system_supported">ColorOS 17 已提供系统开关，此项不再生效</string>
     <string name="remove_alarmclock_widget_redone">移除桌面时钟组件“红 1”</string>
     <string name="remove_alarmclock_widget_redone_pro">移除桌面时钟组件“红 1”增强版</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">仅当常规版本未生效时可用，否则它将导致不可避免的错误</string>

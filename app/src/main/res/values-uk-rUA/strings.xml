@@ -398,6 +398,7 @@
     <string name="remove_72hour_password_verification_summary">Видалити обмеження безпеки, що забороняє використовувати відбиток пальця або розблокування по обличчю після 72 годин роботи смартфона. Набуде чинності після перезавантаження системи</string>
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">Червоний годинник на віджеті годинника</string>
+    <string name="alarmclock_widget_redone_mode_system_supported">У ColorOS 17 є системний перемикач; цей пункт більше не діє</string>
     <string name="remove_alarmclock_widget_redone">Видалити червоний годинник у віджеті годинника на робочому столі</string>
     <string name="remove_alarmclock_widget_redone_pro">Видалити червоний годинник у віджеті годинника на робочому столі</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">Доступно лише тоді, коли звичайна версія не допомагає, інакше це викликає неминучу помилку</string>

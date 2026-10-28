@@ -400,6 +400,7 @@
     <string name="remove_72hour_password_verification_summary">Đã xóa hạn chế bảo mật không sử dụng mật khẩu để mở khóa trong vòng 72 giờ sau khi khởi động, có hiệu lực sau khi khởi động lại hệ thống</string>
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">Tiện ích đồng hồ màu đỏ một chế độ</string>
+    <string name="alarmclock_widget_redone_mode_system_supported">ColorOS 17 đã có công tắc hệ thống; mục này không còn hiệu lực</string>
     <string name="remove_alarmclock_widget_redone">Xóa số một màu đỏ của đồng hồ máy tính để bàn</string>
     <string name="remove_alarmclock_widget_redone_pro">Xóa số một đỏ nâng cao của đồng hồ trên màn hình chính</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">Chỉ khả dụng khi phiên bản thông thường không có hiệu lực, nếu không nó sẽ gây ra lỗi không thể tránh khỏi</string>

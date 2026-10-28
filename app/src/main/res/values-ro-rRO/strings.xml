@@ -399,6 +399,7 @@
     <string name="remove_72hour_password_verification_summary">Removed the security restriction of not using a password to unlock within 72 hours after booting,Effective after system restart</string>
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">Clock widget red one mode</string>
+    <string name="alarmclock_widget_redone_mode_system_supported">ColorOS 17 are un comutator de sistem; această opțiune nu mai are efect</string>
     <string name="remove_alarmclock_widget_redone">Remove desktop clock component red one</string>
     <string name="remove_alarmclock_widget_redone_pro">Remove the desktop clock component Red One Enhanced Edition</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">Only available when the regular version does not take effect, otherwise it will cause an inevitable error</string>

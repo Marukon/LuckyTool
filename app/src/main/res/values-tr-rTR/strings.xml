@@ -459,6 +459,7 @@
     
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">Saat widgeti kırmızı 1 modu</string>
+    <string name="alarmclock_widget_redone_mode_system_supported">ColorOS 17 sistem anahtarını içeriyor, bu seçenek artık geçerli değil</string>
     <string name="remove_alarmclock_widget_redone">Masaüstü saat bileşeni kırmızı 1\'i kaldır</string>
     <string name="remove_alarmclock_widget_redone_pro">Masaüstü saat bileşeni Gelişmiş Kırmızı 1\'i kaldır</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">Yalnızca normal sürüm etki etmediğinde kullanılabilir, aksi takdirde kaçınılmaz bir hataya yol açar</string>
