@@ -110,6 +110,14 @@ object OplusGesturePage {
             key = "remove_rotate_screen_button",
             title = c.getString(R.string.remove_rotate_screen_button),
         )
+        slider(
+            key = "custom_rotate_screen_button_size",
+            title = c.getString(R.string.custom_rotate_screen_button_size),
+            valueRange = 50..100,
+            default = 100,
+            summary = c.getString(R.string.need_restart_scope),
+            valueLabel = { "$it%" },
+        )
         if (getOSVersionCode in 35..36) {
             switch(
                 key = "remove_back_gesture_confirmation_limit",

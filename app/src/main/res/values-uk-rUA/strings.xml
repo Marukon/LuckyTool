@@ -806,6 +806,7 @@
     <string name="remove_side_slider">Видалити бічну панель</string>
     <string name="remove_side_slider_black_background">Прибрати чорний фон бічної панелі</string>
     <string name="remove_rotate_screen_button">Видалити кнопку повороту екрану</string>
+    <string name="custom_rotate_screen_button_size">Розмір кнопки повороту екрану</string>
     <string name="remove_back_gesture_confirmation_limit">Remove the back gesture confirmation limit</string>
     <string name="CustomSideSliderIcon">Користувацька іконка бічної панелі</string>
     <string name="replace_side_slider_icon_switch">Замінити іконку бічної панелі</string>
