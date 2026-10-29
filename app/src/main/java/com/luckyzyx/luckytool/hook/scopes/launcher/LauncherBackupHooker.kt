@@ -16,8 +16,6 @@ import android.os.UserHandle
 import android.provider.MediaStore
 import android.util.Base64
 import androidx.core.net.toUri
-import com.highcapable.betterandroid.ui.extension.component.lifecycleOwner
-import com.highcapable.betterandroid.ui.extension.component.runDelayed
 import com.highcapable.betterandroid.ui.extension.view.toast
 import com.highcapable.kavaref.KavaRef.Companion.asResolver
 import com.highcapable.kavaref.KavaRef.Companion.resolve
@@ -74,6 +72,13 @@ object LauncherBackupHooker : YukiBaseHooker() {
     private val executor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, TAG).apply { isDaemon = true }
     }
+
+    /**
+     * 主线程延迟任务：布局加载轮询、自查重排、5 分钟重试都排在这里。
+     * 不能用 hostContext.lifecycleOwner：hostContext 是 Application，它的 Context 链上没有任何
+     * LifecycleOwner，取到的永远是 null，于是排期一次也不会发生 —— 真机上只剩挂载点触发的那一次自查。
+     */
+    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
     /** 上次处理过的指令 token（进程重启时从 prefs 读回，避免重放旧指令） */
     @Volatile
@@ -321,9 +326,8 @@ object LauncherBackupHooker : YukiBaseHooker() {
         if (selfCheckInstalled) return
         selfCheckInstalled = true
         modelLoadTries = 0
-        hostContext?.lifecycleOwner?.runDelayed(MODEL_LOAD_POLL_MS) {
-            modelLoadedPoll.run()
-        }
+        mainHandler.removeCallbacks(modelLoadedPoll)
+        mainHandler.postDelayed(modelLoadedPoll, MODEL_LOAD_POLL_MS)
     }
 
     /** 先等布局加载完成再自查：加载期间桌面正在读库建模型，别跟它抢 IO */
@@ -332,16 +336,12 @@ object LauncherBackupHooker : YukiBaseHooker() {
             val loaded = isModelLoaded()
             if (!loaded && modelLoadTries < MODEL_LOAD_MAX_TRIES) {
                 modelLoadTries++
-                hostContext?.lifecycleOwner?.runDelayed(MODEL_LOAD_POLL_MS) {
-                    run()
-                }
+                mainHandler.postDelayed(this, MODEL_LOAD_POLL_MS)
                 return
             }
             if (!loaded) LogUtils.d(TAG, "installAutoBackupSelfCheck", "等待布局加载超时，仍做一次到期自查")
             enqueueAutoBackupSelfCheck()
-            hostContext?.lifecycleOwner?.runDelayed(selfCheckIntervalMs()) {
-                selfCheckTick.run()
-            }
+            armSelfCheckTick()
         }
     }
 
@@ -349,10 +349,14 @@ object LauncherBackupHooker : YukiBaseHooker() {
     private val selfCheckTick = object : Runnable {
         override fun run() {
             enqueueAutoBackupSelfCheck()
-            hostContext?.lifecycleOwner?.runDelayed(selfCheckIntervalMs()) {
-                run()
-            }
+            armSelfCheckTick()
         }
+    }
+
+    /** 排下一轮自查：先撤掉旧排期，onHook 重装或重试路径都不会叠出第二条自检链 */
+    private fun armSelfCheckTick() {
+        mainHandler.removeCallbacks(selfCheckTick)
+        mainHandler.postDelayed(selfCheckTick, selfCheckIntervalMs())
     }
 
     /** 自查要读库 + 写 1MB 级文件，全部丢到执行器上，不占桌面主线程 */
@@ -446,16 +450,16 @@ object LauncherBackupHooker : YukiBaseHooker() {
     }
 
     /**
-     * 用桌面 lifecycleOwner 的延迟任务排一次重试。
+     * 用主线程 Handler 排一次重试（Application 上没有 lifecycleOwner，那条路排不出来）。
      * 为什么不在执行器里 sleep：那是单线程执行器，睡 5 分钟会把手动备份/恢复指令一起堵住。
      */
     private fun scheduleAutoBackupRetry(retriesLeft: Int, delayMs: Long) {
         runCatching {
-            hostContext?.lifecycleOwner?.runDelayed(delayMs) {
+            mainHandler.postDelayed({
                 runCatching { executor.execute { runAutoBackupAttempt(retriesLeft) } }.onFailure {
                     YLog.debug("$TAG 提交自动备份重试失败", it)
                 }
-            }
+            }, delayMs)
         }.onFailure { YLog.debug("$TAG 排期自动备份重试失败", it) }
     }
 
