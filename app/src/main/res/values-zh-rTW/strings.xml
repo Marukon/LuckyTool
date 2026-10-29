@@ -324,6 +324,7 @@
     <string name="StatusBarWIFIIcon">WiFi 圖示</string>
     <string name="remove_wifi_data_inout">移除WiFi資料箭頭</string>
     <string name="force_display_wifi_standard">強制顯示 WIFI 訊號標準</string>
+    <string name="force_display_wifi_standard_summary">切換後需重啟作用域才能生效</string>
 
     <string name="StatusBarMobileDataIcon">移動資料圖示</string>
     <string name="remove_mobile_data_icon">移除移動資料圖示</string>

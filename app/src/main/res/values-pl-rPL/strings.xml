@@ -201,7 +201,8 @@
     <string name="StatusBarIcon_summary">Usuń ikony z pasku stanu</string>
     <string name="StatusBarWIFIIcon">Ikona Wi-Fi</string>
     <string name="remove_wifi_data_inout">Usuń wskaźnik użycia Wi-Fi</string>
-    <string name="force_display_wifi_standard">Forced display of WIFI signal standards</string>
+    <string name="force_display_wifi_standard">Wymuszone wyświetlanie standardów sygnału Wi-Fi</string>
+    <string name="force_display_wifi_standard_summary">Po zmianie wymagane jest ponowne uruchomienie procesów w zakresie, aby ustawienie zaczęło działać</string>
     <string name="StatusBarMobileDataIcon">Ikona danych mobilnych</string>
     <string name="remove_mobile_data_icon">Usuń ikonę mobilnej sieci</string>
     <string name="remove_mobile_data_inout">Usuń wskaźnik użycia danych mobilnych</string>

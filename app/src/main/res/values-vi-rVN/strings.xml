@@ -204,6 +204,7 @@
     <string name="StatusBarWIFIIcon">Biểu tượng WIFI</string>
     <string name="remove_wifi_data_inout">Xóa thông tin dữ liệu WiFi</string>
     <string name="force_display_wifi_standard">Bắt buộc hiện các tiêu chuẩn tín hiệu WIFI</string>
+    <string name="force_display_wifi_standard_summary">Cần khởi động lại quy trình phạm vi sau khi chuyển để có hiệu lực</string>
     <string name="StatusBarMobileDataIcon">Biểu tượng dữ liệu di động</string>
     <string name="remove_mobile_data_icon">Xóa biểu tượng dữ diệu di động</string>
     <string name="remove_mobile_data_inout">Xóa mũi tên dữ liệu di động</string>

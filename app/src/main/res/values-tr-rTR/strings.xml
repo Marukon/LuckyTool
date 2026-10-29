@@ -230,6 +230,7 @@
     <string name="StatusBarWIFIIcon">WIFI Simgesi</string>
     <string name="remove_wifi_data_inout">WiFi veri giriş/çıkış göstergesini kaldır</string>
     <string name="force_display_wifi_standard">WIFI sinyal standartlarının zorla görüntülenmesi</string>
+    <string name="force_display_wifi_standard_summary">Değişiklikten sonra etkili olması için kapsam içi süreçleri yeniden başlatın</string>
     
     <string name="StatusBarMobileDataIcon">Mobil Veri Simgesi</string>
     <string name="remove_mobile_data_icon">Mobil veri simgesini kaldır</string>

@@ -201,7 +201,8 @@
     <string name="StatusBarIcon_summary">Status bar icon related</string>
     <string name="StatusBarWIFIIcon">WIFI Icon</string>
     <string name="remove_wifi_data_inout">Remove WiFi data inout</string>
-    <string name="force_display_wifi_standard">Forced display of WIFI signal standards</string>
+    <string name="force_display_wifi_standard">Afișare forțată a standardelor semnalului Wi-Fi</string>
+    <string name="force_display_wifi_standard_summary">După comutare este necesară repornirea proceselor din scop pentru ca modificarea să aibă efect</string>
     <string name="StatusBarMobileDataIcon">Mobile Data Icon</string>
     <string name="remove_mobile_data_icon">Remove mobile data icon</string>
     <string name="remove_mobile_data_inout">Remove Mobile data inout</string>

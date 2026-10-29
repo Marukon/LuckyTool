@@ -40,6 +40,7 @@ object StatusBarIconPage {
             switch(
                 key = "force_display_wifi_standard",
                 title = c.getString(R.string.force_display_wifi_standard),
+                summary = c.getString(R.string.force_display_wifi_standard_summary),
             )
         }
         // 移动数据

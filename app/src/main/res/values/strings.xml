@@ -325,6 +325,7 @@
     <string name="StatusBarWIFIIcon">WIFI Icon</string>
     <string name="remove_wifi_data_inout">Remove WiFi data inout</string>
     <string name="force_display_wifi_standard">Forced display of WIFI signal standards</string>
+    <string name="force_display_wifi_standard_summary">Restart the scope process after switching for it to take effect</string>
     
     <string name="StatusBarMobileDataIcon">Mobile Data Icon</string>
     <string name="remove_mobile_data_icon">Remove mobile data icon</string>

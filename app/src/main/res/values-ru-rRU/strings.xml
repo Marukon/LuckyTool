@@ -202,6 +202,7 @@
     <string name="StatusBarWIFIIcon">Иконка Wi-Fi</string>
     <string name="remove_wifi_data_inout">Удалить стрелки активности Wi-Fi</string>
     <string name="force_display_wifi_standard">Принудительное отображение стандартов сигнала Wi-Fi</string>
+    <string name="force_display_wifi_standard_summary">После переключения требуется перезапустить запланированные процессы, чтобы изменение вступило в силу</string>
     <string name="StatusBarMobileDataIcon">Иконка мобильных данных</string>
     <string name="remove_mobile_data_icon">Удалить иконку мобильных данных</string>
     <string name="remove_mobile_data_inout">Удалить стрелки активности мобильных данных</string>

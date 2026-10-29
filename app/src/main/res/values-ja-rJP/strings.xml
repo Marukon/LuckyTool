@@ -200,7 +200,8 @@
     <string name="StatusBarIcon_summary">ステータスバーアイコン関連</string>
     <string name="StatusBarWIFIIcon">Wi-Fi アイコン</string>
     <string name="remove_wifi_data_inout">Wi-Fiのインジケーターを削除</string>
-    <string name="force_display_wifi_standard">Forced display of WIFI signal standards</string>
+    <string name="force_display_wifi_standard">Wi-Fi 信号規格の強制表示</string>
+    <string name="force_display_wifi_standard_summary">切り替えた後はスコープしたプロセスを再起動すると反映されます</string>
     <string name="StatusBarMobileDataIcon">モバイルデータアイコン</string>
     <string name="remove_mobile_data_icon">モバイルデータアイコンを削除</string>
     <string name="remove_mobile_data_inout">モバイルデータのインジケーターを削除</string>

@@ -299,6 +299,7 @@
     <string name="StatusBarWIFIIcon">Wi-Fi 图标</string>
     <string name="remove_wifi_data_inout">移除 Wi-Fi 数据箭头</string>
     <string name="force_display_wifi_standard">强制显示 WIFI 信号标准</string>
+    <string name="force_display_wifi_standard_summary">切换后需重启作用域进程才能生效</string>
     <string name="StatusBarMobileDataIcon">移动数据图标</string>
     <string name="remove_mobile_data_icon">移除移动数据图标</string>
     <string name="remove_mobile_data_inout">移除移动数据箭头</string>

@@ -201,7 +201,8 @@
     <string name="StatusBarIcon_summary">Іконка рядку стану</string>
     <string name="StatusBarWIFIIcon">Іконка WI-FI</string>
     <string name="remove_wifi_data_inout">Видалити вхідні Wi-Fi дані</string>
-    <string name="force_display_wifi_standard">Forced display of WIFI signal standards</string>
+    <string name="force_display_wifi_standard">Примусове відображення стандартів сигналу Wi-Fi</string>
+    <string name="force_display_wifi_standard_summary">Після перемикання потрібно перезавантажити заплановані процеси, щоб зміна набула чинності</string>
     <string name="StatusBarMobileDataIcon">Іконка мобільних даних</string>
     <string name="remove_mobile_data_icon">Видалити іконку мобільних даних</string>
     <string name="remove_mobile_data_inout">Видалити вхідні мобільні дані</string>

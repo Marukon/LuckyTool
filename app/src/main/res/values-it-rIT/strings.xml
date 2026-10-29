@@ -201,6 +201,7 @@
     <string name="StatusBarWIFIIcon">Icona Wi-Fi</string>
     <string name="remove_wifi_data_inout">Rimuovi \"in-out\" Dati Wi-Fi</string>
     <string name="force_display_wifi_standard">Visualizzazione forzata degli standard del segnale WIFI</string>
+    <string name="force_display_wifi_standard_summary">Dopo la modifica è necessario riavviare i processi di destinazione perché abbia effetto</string>
     <string name="StatusBarMobileDataIcon">Icona Dati Mobile</string>
     <string name="remove_mobile_data_icon">Rimuovi icona dati mobile</string>
     <string name="remove_mobile_data_inout">Rimuovi \"in-out\" Dati Mobile</string>

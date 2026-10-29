@@ -202,6 +202,7 @@
     <string name="StatusBarWIFIIcon">Ikona WIFI</string>
     <string name="remove_wifi_data_inout">Skrýt indikátor využití WiFi</string>
     <string name="force_display_wifi_standard">Vynucené zobrazení standardů WIFI signálu</string>
+    <string name="force_display_wifi_standard_summary">Po přepnutí je nutné restartovat zahrnuté procesy, aby se změna projevila</string>
     <string name="StatusBarMobileDataIcon">Ikona mobilních dat</string>
     <string name="remove_mobile_data_icon">Odstranit ikonu mobilních dat</string>
     <string name="remove_mobile_data_inout">Skrýt indikátor využití mobilních dat</string>
