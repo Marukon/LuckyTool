@@ -491,6 +491,7 @@ object LauncherBackupTransfer {
     suspend fun adoptHostFallback(context: Context): Unit = withContext(Dispatchers.IO) {
         val dir = backupDir()
         if (!dir.isDirectory && !dir.mkdirs()) return@withContext
+        renameLegacyArchives(dir)
         for (source in hostFallbackDirs(context)) {
             val files = runCatching {
                 source.listFiles()?.filter {
@@ -513,6 +514,35 @@ object LauncherBackupTransfer {
                         "搬运 " + file.name + " 失败: " + (throwable.message ?: throwable.javaClass.simpleName),
                     )
                 }
+            }
+        }
+    }
+
+    /**
+     * 把历史上被媒体库改写掉扩展名的 .zip 快照改回 [LauncherBackupUtils.FILE_SUFFIX]。
+     *
+     * 老版本自动备份投稿时声明的 MIME 是 application/zip，媒体库按 MIME 把 .ltbackup 换成了 .zip，
+     * 这类文件列表与恢复都不认，等于凭空少了一份备份。只改「去掉 .zip 后仍是合法快照名」的文件，
+     * 目录里的其它 zip（用户自己放的）一律不动；改不动就留在原处并记日志。
+     */
+    private fun renameLegacyArchives(dir: File) {
+        val legacy = runCatching {
+            dir.listFiles()?.filter {
+                it.isFile && it.name.endsWith(".zip") && it.length() > 0L &&
+                    LauncherBackupUtils.parseSnapshotName(it.name.removeSuffix(".zip")) != null
+            }
+        }.getOrNull() ?: return
+        for (file in legacy) {
+            val target = File(dir, file.name.removeSuffix(".zip") + LauncherBackupUtils.FILE_SUFFIX)
+            runCatching {
+                if (target.exists()) error("目标已存在 " + target.name)
+                if (!file.renameTo(target)) error("重命名失败")
+                LogUtils.d("LauncherBackupTransfer", "renameLegacyArchives", "改回扩展名 " + file.name)
+            }.onFailure { throwable ->
+                LogUtils.d(
+                    "LauncherBackupTransfer", "renameLegacyArchives",
+                    "改写 " + file.name + " 失败: " + (throwable.message ?: throwable.javaClass.simpleName),
+                )
             }
         }
     }

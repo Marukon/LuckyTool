@@ -33,7 +33,13 @@ object LauncherBackupSink {
 
     private const val TAG = "LauncherBackupSink"
 
-    private const val MIME_TYPE = "application/zip"
+    /**
+     * 投稿时声明的 MIME 不能写 application/zip：媒体库建文件走 FileUtils.splitFileName，
+     * 名字里的扩展名与该 MIME 注册的扩展名（zip）对不上时会被替换成 MIME 的扩展名，
+     * 于是 <快照>.ltbackup 落盘变成 <快照>.zip，而 app 侧只认 .ltbackup，这份自动备份就列不出来。
+     * 换一个没注册扩展名的 MIME，媒体库才保留原文件名。
+     */
+    private const val MIME_TYPE = "application/x-luckytool-backup"
 
     /** 兜底目录里的子目录名：与备份目录最后一段同名，app 侧才认得出哪些文件要搬回去 */
     private const val SNAPSHOT_DIR = LauncherBackupUtils.MEDIA_SUBDIR
@@ -133,7 +139,11 @@ object LauncherBackupSink {
             //写完再解除 pending，否则别的应用会先看到半份文件
             val publish = ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }
             resolver.update(target, publish, null, null)
-            if (mediaSize(resolver, target) <= 0L) error("写入后回读大小为 0")
+            val landed = mediaNameAndSize(resolver, target)
+            if (landed.second <= 0L) error("写入后回读大小为 0")
+            // 名字必须还是我们要的那个：被媒体库改写过的文件 app 侧认不出（只列 .ltbackup），
+            // 与其留一份看不见的备份，不如按失败处理，交给下一档按原名落盘
+            landed.first?.takeIf { it != displayName }?.let { error("文件名被改写为 " + it) }
         }.onFailure { throwable ->
             //失败的残行用户看不到，但会一直占配额
             runCatching { resolver.delete(target, null, null) }
@@ -155,13 +165,19 @@ object LauncherBackupSink {
         return Placement(file = file)
     }
 
-    /** 回读 MediaStore 行的大小（字节）；读不到按 0 处理 */
-    private fun mediaSize(resolver: ContentResolver, uri: Uri): Long = runCatching {
-        resolver.query(uri, arrayOf(MediaStore.MediaColumns.SIZE), null, null, null)
-            ?.use { cursor ->
-                if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else 0L
-            } ?: 0L
-    }.getOrDefault(0L)
+    /** 回读 MediaStore 行的名字与大小；读不到名字返回 null、大小按 0 处理 */
+    private fun mediaNameAndSize(resolver: ContentResolver, uri: Uri): Pair<String?, Long> = runCatching {
+        resolver.query(
+            uri,
+            arrayOf(MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE),
+            null, null, null,
+        )?.use { cursor ->
+            if (!cursor.moveToFirst()) return@use null to 0L
+            val name = if (cursor.isNull(0)) null else cursor.getString(0)
+            val size = if (cursor.isNull(1)) 0L else cursor.getLong(1)
+            name to size
+        } ?: (null to 0L)
+    }.getOrDefault(null to 0L)
 
     private var environmentLogged = false
 
