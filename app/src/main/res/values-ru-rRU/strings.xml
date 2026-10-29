@@ -400,7 +400,6 @@
     <string name="remove_72hour_password_verification_summary">Удалить ограничение безопасности, запрещающее использовать отпечаток пальца или разблокировку по лицу, после 72 часов работы смартфона. Вступит в силу после перезагрузки системы</string>
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">Красная цифра 1 в виджете часов</string>
-    <string name="alarmclock_widget_redone_mode_system_supported">В ColorOS 17 есть системный переключатель; этот пункт больше не действует</string>
     <string name="remove_alarmclock_widget_redone">Удалить красную цифру 1 в виджете часов на рабочем столе</string>
     <string name="remove_alarmclock_widget_redone_pro">Удалить красную цифру 1 в виджете часов на рабочем столе</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">Доступно только тогда, когда обычная версия не помогает, иначе это вызовет неизбежную ошибку</string>

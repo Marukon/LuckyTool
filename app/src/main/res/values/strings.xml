@@ -564,7 +564,6 @@
     
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">Clock widget red one mode</string>
-    <string name="alarmclock_widget_redone_mode_system_supported">ColorOS 17 provides a system switch; this option no longer takes effect</string>
     <string name="remove_alarmclock_widget_redone">Remove desktop clock component red one</string>
     <string name="remove_alarmclock_widget_redone_pro">Remove the desktop clock component Red One Enhanced Edition</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">Only available when the regular version does not take effect, otherwise it will cause an inevitable error</string>

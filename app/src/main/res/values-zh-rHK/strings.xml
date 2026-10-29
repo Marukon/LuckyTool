@@ -561,7 +561,6 @@
 
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">時鐘元件紅一模式</string>
-    <string name="alarmclock_widget_redone_mode_system_supported">ColorOS 17 已提供系統開關，此項不再生效</string>
     <string name="remove_alarmclock_widget_redone">移除桌面時鐘元件紅一</string>
     <string name="remove_alarmclock_widget_redone_pro">移除桌面時鐘元件紅一·增強版</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">僅當常規版本未生效時可用，否則它將導致不可避免的錯誤</string>

@@ -398,7 +398,6 @@
     <string name="remove_72hour_password_verification_summary">起動してから72時間毎にパスワードを要求される制限を解除します。システム再起動後に有効化されます</string>
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">時計ウィジェットの赤い「1」表示</string>
-    <string name="alarmclock_widget_redone_mode_system_supported">ColorOS 17 にはシステムスイッチがあるため、この項目は反映されません</string>
     <string name="remove_alarmclock_widget_redone">赤文字の1の時計のコンポーネントを削除</string>
     <string name="remove_alarmclock_widget_redone_pro">Red One Enhanced Editionの時計のコンポーネントを削除</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">通常版が有効でない場合のみ使用可能です、それ以外の場合は不可避のエラーが発生します</string>

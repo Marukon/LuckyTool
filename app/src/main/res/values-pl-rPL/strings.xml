@@ -400,7 +400,6 @@
     <string name="remove_72hour_password_verification_summary">Usuń ograniczenie bezpieczeństwa polegające na ograniczeniu możliwości użycia hasła do odblokowania w ciągu 72 godzin od uruchomienia systemu. Skuteczne po ponownym uruchomieniu urządzenia</string>
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">Clock widget red one mode</string>
-    <string name="alarmclock_widget_redone_mode_system_supported">ColorOS 17 ma systemowy przełącznik; ta opcja nie działa już</string>
     <string name="remove_alarmclock_widget_redone">Usuń czerwony kolor z cyfry „1”</string>
     <string name="remove_alarmclock_widget_redone_pro">Wymuś usunięcie czerwonego koloru z cyfry „1”</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">Dostępne, gdy zwykły przełącznik nie jest skuteczny</string>

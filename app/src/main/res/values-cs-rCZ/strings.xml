@@ -399,7 +399,6 @@
     <string name="remove_72hour_password_verification_summary">Odstranit bezpečnostní omezení z důvodu nepoužití hesla k odemknutí během 72 hodin po spuštění, účinné po restartu systému</string>
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">Režim červené jedničky hodin ve widgetu</string>
-    <string name="alarmclock_widget_redone_mode_system_supported">ColorOS 17 má systémový přepínač; tato volba již neplatí</string>
     <string name="remove_alarmclock_widget_redone">Odstranit červenou jedničku na hodinách na ploše</string>
     <string name="remove_alarmclock_widget_redone_pro">Odstranit červenou jedničku na hodinách na ploše - vylepšená edice</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">Dostupné pouze v případě, že normální verze nezafunguje, jinak způsobí nevyhnutelnou chybu</string>

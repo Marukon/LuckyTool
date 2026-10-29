@@ -1,22 +1,21 @@
 package com.luckyzyx.luckytool.hook.scopes.alarmclock
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.os.Handler
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
 import android.widget.RemoteViews
 import androidx.core.graphics.toColorInt
 import com.highcapable.kavaref.KavaRef.Companion.resolve
+import com.highcapable.kavaref.condition.type.Modifiers
 import com.highcapable.kavaref.extension.classOf
 import com.highcapable.yukihookapi.extension.kavaref.intercept
 import com.highcapable.yukihookapi.extension.kavaref.toClass
 import com.highcapable.yukihookapi.extension.kavaref.toClassOrNull
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
+import com.highcapable.yukihookapi.hook.log.YLog
 import com.luckyzyx.luckytool.utils.DexkitUtils.checkDataList
 import com.luckyzyx.luckytool.utils.ModulePrefs
-import com.luckyzyx.luckytool.utils.getOSVersionCode
-import com.luckyzyx.luckytool.utils.safeOfNull
 import org.lsposed.lsparanoid.Obfuscate
 import org.luckypray.dexkit.DexKitBridge
 
@@ -26,14 +25,11 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
     companion object {
         private lateinit var redMode: String
 
-        private val BaseClockWidget = "com.coloros.widget.smallweather.BaseClockWidget"
+        //红 layout 依赖的自定义 View，同时也是各版本红一开关方法的稳定锚点字符串
+        private val OplusTextClock = "com.oplus.widget.OplusTextClock"
+
+        //没有红 layout 的老版本（如 COS12.1）直接给组件文本里的 "1" 上色
         private val OnePlusWidget = "com.coloros.widget.smallweather.OnePlusWidget"
-//        val OppoWeather = "com.coloros.widget.smallweather.OppoWeather"
-//        val OppoWeatherSingle = "com.coloros.widget.smallweather.OppoWeatherSingle"
-//        val OppoWeatherVertical = "com.coloros.widget.smallweather.OppoWeatherVertical"
-//        val OppoWeatherMultiVertical = "com.coloros.widget.smallweather.OppoWeatherMultiVertical"
-//        val RealmeWeather = "com.coloros.widget.smallweather.RealmeWeather"
-//        val OxygenWeatherSingle = "com.coloros.widget.smallweather.OxygenWeatherSingle"
 
         fun setCharRedOne(format: CharSequence): CharSequence {
             val sp = SpannableStringBuilder(format)
@@ -49,49 +45,43 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
             return sp
         }
 
-        /**
-         * 新版时钟V14+处理RemoteViews
-         *
-         * 优先就地往返回的 RemoteViews 里追加反射动作（不换 layout），
-         * 探测不到可用方法时才回退到推导出的 layout。
-         * @receiver Class<*>
-         */
-        fun YukiBaseHooker.hookBaseClock(clazz: Class<Any>) {
-            clazz.resolve().apply {
-                method {
-                    emptyParameters()
-                    returnType = RemoteViews::class
-                }.forEach {
-                    it.intercept {
-                        //先跑原逻辑，避免任何探测异常影响小组件刷新
-                        val raw = proceed()
-                        val remoteViews = raw as? RemoteViews ?: return@intercept raw
-                        //跟随系统：零动作
-                        if (redMode == "0") return@intercept raw
-                        val context = safeOfNull {
-                            (field { type = Context::class }.firstOrNull()
-                                ?: field { type = Context::class; superclass() }.firstOrNull())
-                                ?.of(instance)?.get<Context>()
-                        } ?: return@intercept raw
-                        //就地开关命中时返回 null（remoteViews 已被直接改写），只有兜底替换才返回新实例
-                        safeOfNull {
-                            RemoteViewsRedOne.handle(context, remoteViews, redMode)
-                        } ?: return@intercept raw
-                    }
-                }
-            }
-        }
+        /** 红一开关方法，类名与方法名每版都不同，一律取自 DexKit 定位结果 */
+        private data class RedOneGate(val className: String, val methodName: String)
+
+        /** 按红 layout 依赖的 OplusTextClock 字符串反查宿主选 layout 的开关方法 */
+        private fun DexKitBridge.findRedOneGates(): List<RedOneGate> = runCatching {
+            findMethod {
+                matcher { usingStrings(OplusTextClock) }
+            }.apply {
+                checkDataList("AlarmClockRedOne", onlyOne = false, isDebug = true)
+            }.mapNotNull { data ->
+                if (data.paramTypeNames.isNotEmpty() || data.returnTypeName != "boolean") null
+                else RedOneGate(data.className, data.methodName)
+            }.distinct()
+        }.getOrNull().orEmpty()
     }
 
-
     override fun onHook() {
-        //ColorOS 17 (40 -> c17.0.0) 起系统自带红一开关，本模块不再接管，不注册任何 hook
-        if (getOSVersionCode >= 40) return
-
         redMode = preferences(ModulePrefs).getString("alarmclock_widget_redone_mode", "0")
         dataChannel.wait<String>("alarmclock_widget_redone_mode") { redMode = it }
 
-        val onePlusWidget = OnePlusWidget.toClassOrNull()?.resolve() ?: return
+        //先找宿主的红一开关：找到说明该版本有红 layout，拦开关即可，不需要替换 layout
+        val gates = dexKitBridge.findRedOneGates()
+        if (gates.isNotEmpty()) {
+            loadHooker(RedOneSwitch(gates))
+            return
+        }
+        //找不到开关说明该版本没有红 layout，退回文本上色
+        hookTextRedOne()
+    }
+
+    /** 没有红 layout 的版本：拦截组件生成时间的 CharSequence，把 "1" 上色 */
+    private fun hookTextRedOne() {
+        val onePlusWidget = OnePlusWidget.toClassOrNull()?.resolve()
+        if (onePlusWidget == null) {
+            YLog.debug("AlarmClockTextRedOne -> 未找到 OnePlusWidget，跳过", tag = "AlarmClockWidget")
+            return
+        }
         when {
             onePlusWidget.firstMethodOrNull {
                 parameters(String::class, String::class)
@@ -101,73 +91,34 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
             onePlusWidget.firstMethodOrNull {
                 returnType = RemoteViews::class
             } != null -> loadHooker(AlarmClock130(dexKitBridge))
-
-            else -> {
-                val baseClockWidget = BaseClockWidget.toClassOrNull()
-                if (baseClockWidget != null) loadHooker(BaseAlarmClock14)
-                else loadHooker(BaseAlarmClock15(dexKitBridge))
-            }
         }
     }
 
-    private class BaseAlarmClock15(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
+    private class RedOneSwitch(private val gates: List<RedOneGate>) : YukiBaseHooker() {
         override fun onHook() {
-            //Source BaseClockWidget
-            //Source OnePlusWidget / OppoWeather / OppoWeatherSingle / OppoWeatherVertical
-            dexKitBridge.findClass {
-                matcher {
-                    fields {
-                        addForType(classOf<Class<*>>())
-                        addForType(classOf<Context>())
-                        addForType(classOf<Bitmap>())
-                        addForType(classOf<Boolean>())
-                        addForType(classOf<Int>())
-                    }
-                    methods {
-                        add {
-                            paramCount(0)
-                            returnType(classOf<Int>())
-                        }
-                        add {
-                            paramTypes(classOf<RemoteViews>(), classOf<Int>(), classOf<String>())
-                            usingStrings("setTimeZone")
-                        }
-                        add {
-                            paramTypes(
-                                classOf<RemoteViews>(),
-                                classOf<Boolean>(),
-                                classOf<Boolean>()
-                            )
-//                            usingStrings(
-//                                "com.oplus.widget.smallweather.WEATHER_CLICK",
-//                                "com.oplus.widget.smallweather.RESIDENT_CITY_CLICK"
-//                            )
-                        }
-                        add {
-                            paramTypes(
-                                classOf<RemoteViews>(),
-                                classOf<Int>(),
-                                classOf<CharSequence>()
-                            )
-                            usingStrings("setFormat24Hour", "setFormat12Hour")
-                        }
-                        add {
-                            paramTypes(classOf<RemoteViews>())
-                            usingStrings("com.oplus.widget.smallweather.REFRESH_CLICK")
+            gates.forEach { gate ->
+                //宿主布局选择点走的是 O() { if (k()) return false; return i() } 这类包装方法，k() 恒为 false，
+                //最终都会落到这里拦的开关方法上，所以只拦一个方法就能覆盖全部布局选择点
+                val clazz = gate.className.toClassOrNull() ?: return@forEach
+                clazz.resolve().method {
+                    name = gate.methodName
+                    parameterCount = 0
+                    returnType = classOf<Boolean>()
+                    modifiers(Modifiers.STATIC, Modifiers.PUBLIC)
+                }.forEach { method ->
+                    method.intercept {
+                        when (redMode) {
+                            //跟随系统
+                            "0" -> proceed()
+                            //强制红一，宿主缺 OplusTextClock 时选中红 layout 会 inflate 崩溃，退回原逻辑
+                            "1" -> if (OplusTextClock.toClassOrNull() != null) true else proceed()
+                            //强制普通
+                            "2" -> false
+                            else -> proceed()
                         }
                     }
                 }
-            }.apply {
-                checkDataList("AlarmClock145")
-                hookBaseClock(single().name.toClass())
             }
-        }
-    }
-
-    private object BaseAlarmClock14 : YukiBaseHooker() {
-        override fun onHook() {
-            //Source BaseClockWidget
-            hookBaseClock(BaseClockWidget.toClass())
         }
     }
 
@@ -220,7 +171,7 @@ class AlarmClockWidget(val dexKitBridge: DexKitBridge) : YukiBaseHooker() {
     private object AlarmClock12 : YukiBaseHooker() {
         override fun onHook() {
             //Source OnePlusWidget
-            "com.coloros.widget.smallweather.OnePlusWidget".toClass().resolve().apply {
+            OnePlusWidget.toClass().resolve().apply {
                 firstMethod {
                     parameters(String::class, String::class)
                     returnType = CharSequence::class

@@ -398,7 +398,6 @@
     <string name="remove_72hour_password_verification_summary">Rimossa la restrizione di sicurezza di non utilizzare una password per sbloccare entro 72 ore dopo l\'avvio, efficace dopo il riavvio del sistema</string>
     <!--AlarmClock-->
     <string name="alarmclock_widget_redone_mode">Modalità Widget Orologio Uno Rosso</string>
-    <string name="alarmclock_widget_redone_mode_system_supported">ColorOS 17 dispone di un interruttore di sistema; questa opzione non ha più effetto</string>
     <string name="remove_alarmclock_widget_redone">Rimuovi componente Orologio Uno Rosso</string>
     <string name="remove_alarmclock_widget_redone_pro">Rimuovi il componente Orologio Uno Rosso Edizione Migliorata</string>
     <string name="remove_alarmclock_widget_redone_pro_summary">Disponibile solo quando la versione regolare non ha effetto, altrimenti causerà un errore inevitabile</string>
