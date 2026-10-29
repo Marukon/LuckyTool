@@ -6,6 +6,7 @@ import android.content.res.XmlResourceParser
 import android.widget.RemoteViews
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.condition.type.Modifiers
+import com.highcapable.kavaref.extension.classOf
 import com.highcapable.kavaref.extension.toClassOrNull
 import com.highcapable.yukihookapi.hook.log.YLog
 import org.lsposed.lsparanoid.Obfuscate
@@ -163,7 +164,7 @@ object RemoteViewsRedOne {
     @SuppressLint("DiscouragedApi")
     private fun probeLayout(context: Context, layoutId: Int): List<RedOneAction> {
         val actions = mutableListOf<RedOneAction>()
-        val parser = context.resources.getLayout(layoutId) ?: return actions
+        val parser = context.resources.getLayout(layoutId)
         try {
             var type = parser.eventType
             while (type != XmlPullParser.END_DOCUMENT) {
@@ -224,8 +225,8 @@ object RemoteViewsRedOne {
                 modifiers(Modifiers.PUBLIC)
                 parameters { types ->
                     types.size == 1 &&
-                            (types[0] == Boolean::class.javaPrimitiveType ||
-                                    types[0] == Int::class.javaPrimitiveType)
+                            (types[0] == classOf<Boolean>() ||
+                                    types[0] == classOf<Int>())
                 }
                 //注意：KavaRef 的 annotations(...) 是"注解集合完全相等"（MemberProcessor.kt:526-536 先比 size 再比集合），
                 //不是"是否存在目标注解"（包含）语义；因此只有仅带 @RemotableViewMethod 一个运行期注解的方法会被命中，
@@ -244,7 +245,7 @@ object RemoteViewsRedOne {
         for (resolver in methods) {
             val method = runCatching { resolver.self }.getOrNull() ?: continue
             val paramType = method.parameterTypes[0]
-            val booleanArg = paramType == Boolean::class.javaPrimitiveType
+            val booleanArg = paramType == classOf<Boolean>()
             val name = method.name
             if (actions.any { it.viewId == viewId && it.methodName == name }) continue
             actions += RedOneAction(viewId, name, booleanArg)
