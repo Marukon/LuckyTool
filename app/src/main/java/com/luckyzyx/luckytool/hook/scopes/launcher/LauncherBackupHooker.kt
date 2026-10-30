@@ -2,9 +2,12 @@ package com.luckyzyx.luckytool.hook.scopes.launcher
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.content.BroadcastReceiver
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
@@ -79,6 +82,18 @@ object LauncherBackupHooker : YukiBaseHooker() {
      * LifecycleOwner，取到的永远是 null，于是排期一次也不会发生 —— 真机上只剩挂载点触发的那一次自查。
      */
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
+
+    /**
+     * 亮屏/解锁补一次自查：桌面在熄屏时段可能被系统冻结（缓存进程冻结 / Doze），
+     * 那时主线程排的延迟消息不会跑，到点也没有任何日志；亮屏和锁定解除的系统广播会把进程唤醒
+     * 并投递到这里，所以补一次自查，用户一碰手机就能把漏掉的那次补上。
+     */
+    private val wakeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            LogUtils.d(TAG, "wakeReceiver", "唤醒自查: " + intent?.action)
+            enqueueAutoBackupSelfCheck()
+        }
+    }
 
     /** 上次处理过的指令 token（进程重启时从 prefs 读回，避免重放旧指令） */
     @Volatile
@@ -328,6 +343,19 @@ object LauncherBackupHooker : YukiBaseHooker() {
         modelLoadTries = 0
         mainHandler.removeCallbacks(modelLoadedPoll)
         mainHandler.postDelayed(modelLoadedPoll, MODEL_LOAD_POLL_MS)
+        registerWakeReceiver()
+    }
+
+    /** 亮屏/解锁是系统广播，不受 Android 14 的导出 flag 约束，用两参重载登记即可 */
+    private fun registerWakeReceiver() {
+        val context = hostContext ?: return
+        runCatching {
+            val filter = IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_USER_PRESENT)
+            }
+            context.registerReceiver(wakeReceiver, filter)
+        }.onFailure { YLog.debug("$TAG 注册唤醒自查失败", it) }
     }
 
     /** 先等布局加载完成再自查：加载期间桌面正在读库建模型，别跟它抢 IO */
