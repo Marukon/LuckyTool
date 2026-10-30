@@ -1075,7 +1075,7 @@
     <string name="remove_side_slider">Remove side slider</string>
     <string name="remove_side_slider_black_background">Remove the black background of the side slider</string>
     <string name="remove_rotate_screen_button">Remove the rotate screen button</string>
-    <string name="custom_rotate_screen_button_size">Rotate screen button size</string>
+    <string name="custom_rotate_screen_button_size">Custom rotate screen button size</string>
     <string name="remove_back_gesture_confirmation_limit">Remove the back gesture confirmation limit</string>
     
     <string name="CustomSideSliderIcon">Custom side slider icon</string>
