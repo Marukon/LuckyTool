@@ -8,7 +8,7 @@
     <string name="nav_function">Chức năng</string>
     <string name="nav_home">Trang chủ</string>
     <string name="nav_other">Khác</string>
-    <string name="nav_log">Nhật ký</string>
+    <string name="nav_search">Tìm kiếm</string>
     <string name="nav_setting">Cài đặt</string>
     <string name="fragment_source">Mã nguồn</string>
     <!-- Settings -->
@@ -77,7 +77,7 @@
     <string name="participate_translation_summary">Truy cập Github để đóng góp bản dịch của bạn</string>
     <!-- check lsposed -->
     <string name="system_not_support">Hệ thống hiện tại không hỗ trợ!</string>
-    <string name="unsupported_xposed">Phát hiện mô-đun chưa được kích hoạt\nVui lòng sử dụng khung LSPosed để kích hoạt mô-đun và thử lại!</string>
+    <string name="unsupported_xposed">Vui lòng kích hoạt mô-đun trong khung LSPosed và thử lại!</string>
     <string name="unsupported_os">Hệ thống không được hỗ trợ</string>
     <string name="unsupported_os_summary">Vì mô-đun này chỉ hỗ trợ các hệ thống ColorOS 12 trở lên nên hãy đảm bảo thực hiện các biện pháp an toàn!</string>
     <string name="no_root">Không có quyền Root</string>
@@ -561,8 +561,6 @@
     <string name="SoundRelated">Âm thanh</string>
     <string name="media_volume_level">Mức âm lượng</string>
     <string name="media_volume_level_summary">Đặt thành 0 để tắt chức năng này, khởi động lại hệ thống để có hiệu lực</string>
-    <string name="enable_super_volume_mode">Bật chế độ siêu âm lượng</string>
-    <string name="enable_super_volume_mode_for_calls">Bật chế độ siêu âm lượng cho cuộc gọi</string>
     <string name="minimum_volume_level_can_be_zero">Mức âm lượng có thể thấp đến mức 0</string>
     <string name="enable_app_specific_media_volume">Bật âm lượng phương tiện dành riêng cho ứng dụng</string>
     <string name="enable_app_specific_media_volume_summary">Tính năng này yêu cầu sự hỗ trợ của hệ thống để có hiệu lực</string>

@@ -6,7 +6,7 @@
     <string name="nav_function">機能</string>
     <string name="nav_home">ホーム</string>
     <string name="nav_other">その他</string>
-    <string name="nav_log">ログ</string>
+    <string name="nav_search">検索</string>
     <string name="nav_setting">設定</string>
     <string name="fragment_source">ソースコード</string>
     <!-- Settings -->
@@ -75,7 +75,7 @@
     <string name="participate_translation_summary">Githubでアプリの翻訳にご協力ください</string>
     <!-- check lsposed -->
     <string name="system_not_support">現在のシステムではサポートをしていません!</string>
-    <string name="unsupported_xposed">Module not activated detected.\nPlease use the LSPosed framework for activation after activation!</string>
+    <string name="unsupported_xposed">LSPosed でモジュールを有効化してから、もう一度お試しください。</string>
     <string name="unsupported_os">非対応のシステム</string>
     <string name="unsupported_os_summary">モジュールは ColorOS 12 以降しかサポートしていません。古いシステムには脆弱性があるため、しっかりセキュリティ対策してください。</string>
     <string name="no_root">root 権限がありません</string>
@@ -558,8 +558,6 @@
     <string name="SoundRelated">サウンド関連</string>
     <string name="media_volume_level">メディアのボリュームレベル</string>
     <string name="media_volume_level_summary">0に設定するとこの機能を無効にします。システムの再起動後に有効化されます</string>
-    <string name="enable_super_volume_mode">スーパーボリュームモードを有効化</string>
-    <string name="enable_super_volume_mode_for_calls">通話のスーパーボリュームモードを有効化</string>
     <string name="minimum_volume_level_can_be_zero">最小音量レベルは0に設定できます</string>
     <string name="enable_app_specific_media_volume">アプリ別のメディア音量を有効化</string>
     <string name="enable_app_specific_media_volume_summary">この機能を有効にするにはシステムサポートが必要です</string>

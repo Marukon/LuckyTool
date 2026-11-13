@@ -6,7 +6,7 @@
     <string name="nav_function">Функції</string>
     <string name="nav_home">Головна сторінка</string>
     <string name="nav_other">Інше</string>
-    <string name="nav_log">Логи</string>
+    <string name="nav_search">Пошук</string>
     <string name="nav_setting">Налаштування</string>
     <string name="fragment_source">Джерело коду</string>
     <!-- Settings -->
@@ -75,7 +75,7 @@
     <string name="participate_translation_summary">Перейдіть в Github, щоб додати свій переклад</string>
     <!-- check lsposed -->
     <string name="system_not_support">Поточна система не підтримується!</string>
-    <string name="unsupported_xposed">Module not activated detected.\nPlease use the LSPosed framework for activation after activation!</string>
+    <string name="unsupported_xposed">Будь ласка, активуйте модуль у LSPosed і повторіть спробу!</string>
     <string name="unsupported_os">Непідтримувана система</string>
     <string name="unsupported_os_summary">Оскільки модуль підтримує лише системи ColorOS 12 і вище, будь ласка, вживайте заходи безпеки!</string>
     <string name="no_root">Немає root-прав</string>
@@ -559,8 +559,6 @@
     <string name="SoundRelated">Sound Related</string>
     <string name="media_volume_level">Рівень гучності мультимедіа</string>
     <string name="media_volume_level_summary">Встановіть 0, щоб вимкнути цю функцію, перезавантажте систему, щоб зміни набули чинності</string>
-    <string name="enable_super_volume_mode">Enable super volume mode</string>
-    <string name="enable_super_volume_mode_for_calls">Enable super volume mode for calls</string>
     <string name="minimum_volume_level_can_be_zero">Minimum volume level can be zero</string>
     <string name="enable_app_specific_media_volume">Enable app-specific media volume</string>
     <string name="enable_app_specific_media_volume_summary">This function requires system support to take effect</string>

@@ -6,7 +6,7 @@
     <string name="nav_function">Функции</string>
     <string name="nav_home">Главная</string>
     <string name="nav_other">Прочее</string>
-    <string name="nav_log">Логи</string>
+    <string name="nav_search">Поиск</string>
     <string name="nav_setting">Настройки</string>
     <string name="fragment_source">Исходный код</string>
     <!-- Settings -->
@@ -75,7 +75,7 @@
     <string name="participate_translation_summary">Перейдите на сайт Github, чтобы добавить свой перевод</string>
     <!-- check lsposed -->
     <string name="system_not_support">Текущая система не поддерживается!</string>
-    <string name="unsupported_xposed">Модуль не активирован.\nПожалуйста, используйте фреймворк LSPosed для активации!</string>
+    <string name="unsupported_xposed">Пожалуйста, активируйте модуль в LSPosed и повторите попытку!</string>
     <string name="unsupported_os">Неподдерживаемая система</string>
     <string name="unsupported_os_summary">Поскольку модуль поддерживает только системы ColorOS 12 и выше, обязательно примите меры безопасности!</string>
     <string name="no_root">Нет root-прав</string>
@@ -560,8 +560,6 @@
     <string name="SoundRelated">Звук</string>
     <string name="media_volume_level">Уровень громкости мультимедиа</string>
     <string name="media_volume_level_summary">Установите 0, чтобы отключить эту функцию, перезагрузите систему, чтобы изменения вступили в силу</string>
-    <string name="enable_super_volume_mode">Включить режим супер громкости</string>
-    <string name="enable_super_volume_mode_for_calls">Включить режим супер громкости для звонков</string>
     <string name="minimum_volume_level_can_be_zero">Минимальный уровень громкости может быть нулевым</string>
     <string name="enable_app_specific_media_volume">Включить громкость мультимедиа для конкретных приложений</string>
     <string name="enable_app_specific_media_volume_summary">Эта функция требует системной поддержки</string>

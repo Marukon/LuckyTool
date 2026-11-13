@@ -24,7 +24,9 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - 自定义快捷键事件拦截（无操作 / 响铃循环）
 - 手动热重载作用域进程
 - 软件商店默认展开更新列表
-- Miuix 界面风格（默认启用，可切回 Material）
+- COUI 界面风格（默认启用，可切回 Material）
+- 界面导航改用 NavHost（单 Activity），页面骨架随界面风格替换
+- 独立搜索页，支持最近搜索历史（取代底部日志标签）
 - 冷启动启动动画
 - 自定义状态栏图标排序
 - 自定义状态栏网速刷新间隔（0.1–5 秒）
@@ -32,6 +34,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - 应用权限页（通知 / 所有文件 / 应用列表 / 安装应用）
 - MEMC 配置 Activity 列表支持搜索并显示名称
 - 桌面布局备份与恢复
+- 桌面布局备份与恢复新增功能总开关（默认关闭，开启后需重启桌面作用域）
 - 允许选择第三方 APK 安装器 (@蛮吉)
 - 经典控制中心磁贴行列数适配 C17
 - 控制中心 HDR/SDR 比率磁贴
@@ -46,6 +49,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 
 #### 优化
 
+- COUI 界面风格全量适配（对话框、列表与偏好行、滑杆、下拉刷新、作用域页）
 - 重构桌面时钟组件「红一」控制
 - 重新设计单选、多选与动作列表对话框
 - 重新设计应用选择对话框
@@ -55,6 +59,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - 功能页「XX相关」分类行改用彩色徽标
 - 设置页备份 / 恢复记录数据落点
 - 重构浮窗贴边后台运行
+- 主题取色与暗色模式统一：固定色 / 调色风格 / 色彩规格两条外观线共用，暗色模式两线统一为连体图标按钮；COUI 需开启「跟随 Material 配色」后才显示动态取色与 Material 取色控件（默认使用 COUI 预设配色），COUI 深色与 AMOLED 页面底色已区分
 
 #### 修复
 
@@ -75,6 +80,8 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 - 修复数据备份 / 恢复对集合与旧版字符串格式的处理
 - 修复状态栏网速「使用用户字体」在默认布局下不生效
 - 修复捐赠数据加载（改用 jsDelivr 镜像）
+- 修复「移除启动动画」未去除游戏助手启动弹窗动画 V10.43
+- 修复未授予 Root 的新设备跳过应用权限页，直接进主页弹「无 Root」提示
 
 #### 适配
 
@@ -110,6 +117,7 @@ in [TG Channel’s associated groups](https://t.me/LuckyTool)**
 
 - 移除「状态栏通知中心两侧对齐」
 - 移除支付保护作用域，相关限制可在系统设置中关闭支付保护
+- 移除「超级音量模式」与「通话超级音量模式」
 
 ### 1.3.4
 

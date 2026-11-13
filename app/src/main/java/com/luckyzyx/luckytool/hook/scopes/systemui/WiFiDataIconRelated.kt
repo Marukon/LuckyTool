@@ -69,10 +69,6 @@ object WiFiDataIconRelated : YukiBaseHooker() {
         @Volatile
         private var wifiNetwork: Network? = null
 
-        // 诊断日志去重键，状态没变就不重复打
-        @Volatile
-        private var logStateKey: String? = null
-
         @Volatile
         private var wifiLeftId = 0
 
@@ -127,7 +123,6 @@ object WiFiDataIconRelated : YukiBaseHooker() {
         override fun onHook() {
             val forceStandard =
                 preferences(ModulePrefs).getBoolean("force_display_wifi_standard", false)
-            YLog.debug("force_display_wifi_standard -> $forceStandard")
 
             if (!forceStandard) return
 
@@ -329,7 +324,6 @@ object WiFiDataIconRelated : YukiBaseHooker() {
             if (now - gateCheckedAt < STANDARD_GATE_CACHE_MS) return gateAllowed
             gateCheckedAt = now
             gateAllowed = evaluateStandardGate(context)
-            logState("gate=$gateAllowed") { "wifi standard gate -> $gateAllowed" }
             return gateAllowed
         }
 

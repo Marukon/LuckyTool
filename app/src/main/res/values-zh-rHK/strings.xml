@@ -8,7 +8,7 @@
     <string name="nav_function">功能</string>
     <string name="nav_home">主頁</string>
     <string name="nav_other">其他</string>
-    <string name="nav_log">日誌</string>
+    <string name="nav_search">搜尋</string>
     <string name="nav_setting">設定</string>
     <string name="fragment_source">原始碼</string>
     <!-- Settings -->
@@ -16,6 +16,8 @@
     <string name="theme_title_summary">將自動重新整理頁面</string>
     <string name="use_dynamic_color">動態取色</string>
     <string name="use_dynamic_color_summary">使用動態取色</string>
+    <string name="coui_follow_material_color">跟隨 Material 配色</string>
+    <string name="coui_follow_material_color_summary">開啟後 COUI 使用上方取色設定；關閉則使用 COUI 自帶預設配色</string>
     <string name="dark_theme">深色主題</string>
     <string name="follow_system">跟隨系統</string>
     <string name="dark_theme_off">總是關閉</string>
@@ -39,11 +41,9 @@
     <string name="settings_pager_gesture_ios_like">iOS 風格</string>
     <string name="settings_page_scale">介面縮放</string>
     <string name="settings_page_scale_summary">調整介面顯示比例</string>
-    <string name="settings_module_description_max_lines">模組描述最大行數</string>
-    <string name="settings_module_description_max_lines_summary">超過此行數的介紹將自動折疊</string>
-    <string name="unit_lines">行</string>
     <string name="settings_ui_mode">介面風格</string>
     <string name="settings_ui_mode_summary">選擇應用的介面風格</string>
+    <string name="settings_ui_mode_coui_unavailable">需要 Android 14（API 34）或以上系統。</string>
     <string name="settings_theme">主題設定</string>
     <string name="settings_theme_mode_system">跟隨系統</string>
     <string name="settings_theme_mode_light">淺色</string>
@@ -148,7 +148,7 @@
 
     <!-- check lsposed -->
     <string name="system_not_support">當前系統不支援!</string>
-    <string name="unsupported_xposed">檢測到模組未啟用\n請使用LSPosed框架進行啟用後重試!</string>
+    <string name="unsupported_xposed">請使用LSPosed框架進行啟用後重試!</string>
     <string name="unsupported_os">不受支援的系統</string>
     <string name="unsupported_os_summary">由於該模組僅支援ColorOS 12及以上系統，請務必做好安全措施！</string>
     <string name="no_root">無 Root 權限</string>
@@ -768,8 +768,6 @@
     <string name="SoundRelated">聲音相關</string>
     <string name="media_volume_level">媒體音量階數</string>
     <string name="media_volume_level_summary">設定為0關閉功能，系統重啟生效</string>
-    <string name="enable_super_volume_mode">啟用超級音量模式</string>
-    <string name="enable_super_volume_mode_for_calls">啟用通話超級音量模式</string>
     <string name="minimum_volume_level_can_be_zero">音量階數最低可為 0</string>
     <string name="enable_app_specific_media_volume">啟用應用專屬媒體音量</string>
     <string name="enable_app_specific_media_volume_summary">此功能需要系統支援才能生效</string>
@@ -1541,6 +1539,9 @@
     <string name="launcher_backup">桌面佈局備份</string>
     <string name="launcher_backup_entry">桌面佈局備份與恢復</string>
     <string name="launcher_backup_entry_summary">備份桌面佈局，並可隨時按快照恢復</string>
+    <string name="launcher_backup_category_switch">功能開關</string>
+    <string name="launcher_backup_enable">桌面佈局備份與恢復</string>
+    <string name="launcher_backup_enable_summary">關閉時桌面程序不裝載本功能，本頁也聯繫不上它，手動與自動備份都停止；開啟後需重啟桌面作用域才生效</string>
     <string name="launcher_backup_category_settings">備份設定</string>
     <string name="launcher_backup_category_actions">操作</string>
     <string name="launcher_backup_category_history">快照歷史</string>
@@ -1590,7 +1591,7 @@
     <string name="launcher_backup_tag_manual">手動</string>
     <string name="launcher_backup_tag_pre_restore">恢復前</string>
     <string name="settings_floating_bottom_bar_style">懸浮底欄樣式</string>
-    <string name="settings_floating_style_miuix">Miuix</string>
+    <string name="settings_floating_style_classic">經典</string>
     <string name="settings_floating_style_ios">iOS 風格（液態玻璃）</string>
     <string name="home_device_details_show">更多裝置資訊</string>
     <string name="home_device_details_hide">收起詳細資訊</string>

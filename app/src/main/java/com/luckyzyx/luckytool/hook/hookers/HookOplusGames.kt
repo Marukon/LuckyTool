@@ -43,7 +43,7 @@ object HookOplusGames : YukiBaseHooker() {
             }
             //移除启动动画
             if (preferences(ModulePrefs).getBoolean("remove_startup_animation", false)) {
-                loadHooker(RemoveStartupAnimation)
+                loadHooker(RemoveStartupAnimation(dexKitBridge))
             }
             //启用赛事支持模式
             if (preferences(ModulePrefs).getBoolean("enable_support_competition_mode", false)) {
@@ -59,7 +59,7 @@ object HookOplusGames : YukiBaseHooker() {
             }
             //启用游戏助手后台挂机
             if (preferences(ModulePrefs).getBoolean("enable_game_run_in_background", false)) {
-                if (osCode >= 27) loadHooker(EnableGameRunInBackground(dexKitBridge))
+                if (osCode >= 27) loadHooker(EnableGameRunInBackground(appVer, dexKitBridge))
             }
             //自定义媒体播放器支持
             loadHooker(CustomMediaPlayerSupport(dexKitBridge))

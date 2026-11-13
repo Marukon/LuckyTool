@@ -8,7 +8,7 @@
     <string name="nav_function">Function</string>
     <string name="nav_home">Home page</string>
     <string name="nav_other">Other</string>
-    <string name="nav_log">Logs</string>
+    <string name="nav_search">Search</string>
     <string name="nav_setting">Settings</string>
     <string name="fragment_source">SourceCode</string>
     <!-- Settings -->
@@ -16,6 +16,8 @@
     <string name="theme_title_summary">Page will be automatically refreshed</string>
     <string name="use_dynamic_color">Dynamic colors</string>
     <string name="use_dynamic_color_summary">Use dynamic colors</string>
+    <string name="coui_follow_material_color">Follow Material colors</string>
+    <string name="coui_follow_material_color_summary">When on, COUI uses the color settings above; when off, COUI uses its own preset palette.</string>
     <string name="dark_theme">Dark theme</string>
     <string name="follow_system">Follow system</string>
     <string name="dark_theme_off">Always off</string>
@@ -39,11 +41,9 @@
     <string name="settings_pager_gesture_ios_like">iOS-like</string>
     <string name="settings_page_scale">Page Scale</string>
     <string name="settings_page_scale_summary">Adjust the global display scale.</string>
-    <string name="settings_module_description_max_lines">Module description max lines</string>
-    <string name="settings_module_description_max_lines_summary">Descriptions exceeding this line count will be folded automatically.</string>
-    <string name="unit_lines">Lines</string>
     <string name="settings_ui_mode">UI Style</string>
     <string name="settings_ui_mode_summary">Choose the interface style.</string>
+    <string name="settings_ui_mode_coui_unavailable">Requires Android 14 (API 34) or above.</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_mode_system">Follow system</string>
     <string name="settings_theme_mode_light">Light</string>
@@ -149,7 +149,7 @@
     
     <!-- check lsposed -->
     <string name="system_not_support">The current system does not support!</string>
-    <string name="unsupported_xposed">Module not activated detected.\nPlease use the LSPosed framework for activation after activation!</string>
+    <string name="unsupported_xposed">Please activate the module in the LSPosed framework and try again!</string>
     <string name="unsupported_os">Unsupported system</string>
     <string name="unsupported_os_summary">Because the module only supports ColorOS 12 and above systems, please be sure to take security measures!</string>
     <string name="no_root">No Root permission</string>
@@ -158,6 +158,8 @@
     <!-- Menu -->
     <string name="menu_reboot">Restart menu</string>
     <string name="menu_search">Search menu</string>
+    <string name="search_history">Recent searches</string>
+    <string name="search_history_clear">Clear search history</string>
     <string name="search_no_results">No matching results</string>
     <string name="search_index_loading">Building search index…</string>
     <string name="menu_settings">Set menu</string>
@@ -773,8 +775,6 @@
     <string name="SoundRelated">Sound Related</string>
     <string name="media_volume_level">Media volume level</string>
     <string name="media_volume_level_summary">Set to 0 to disable this function, restart the system to take effect</string>
-    <string name="enable_super_volume_mode">Enable super volume mode</string>
-    <string name="enable_super_volume_mode_for_calls">Enable super volume mode for calls</string>
     <string name="minimum_volume_level_can_be_zero">Minimum volume level can be zero</string>
     <string name="enable_app_specific_media_volume">Enable app-specific media volume</string>
     <string name="enable_app_specific_media_volume_summary">This function requires system support to take effect</string>
@@ -1572,6 +1572,9 @@
     <string name="launcher_backup">Desktop layout backup</string>
     <string name="launcher_backup_entry">Desktop layout backup and restore</string>
     <string name="launcher_backup_entry_summary">Back up the home screen layout and restore it from a snapshot</string>
+    <string name="launcher_backup_category_switch">Feature switch</string>
+    <string name="launcher_backup_enable">Desktop layout backup and restore</string>
+    <string name="launcher_backup_enable_summary">When off, the launcher process does not load this feature and this page cannot reach it, so both manual and automatic backup stop; turn it on and restart the launcher scope to take effect</string>
     <string name="launcher_backup_category_settings">Backup settings</string>
     <string name="launcher_backup_category_actions">Actions</string>
     <string name="launcher_backup_category_history">Snapshot history</string>
@@ -1621,7 +1624,7 @@
     <string name="launcher_backup_tag_manual">Manual</string>
     <string name="launcher_backup_tag_pre_restore">Before restore</string>
     <string name="settings_floating_bottom_bar_style">Floating bottom bar style</string>
-    <string name="settings_floating_style_miuix">Miuix</string>
+    <string name="settings_floating_style_classic">Classic</string>
     <string name="settings_floating_style_ios">iOS style (Liquid Glass)</string>
     <string name="home_device_details_show">More device information</string>
     <string name="home_device_details_hide">Less device information</string>
